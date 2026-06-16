@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>戏韵千秋 · 京剧数据可视分析系统 | ChinaVis 2026</title>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<!-- ECharts loaded async at end of body -->
+<style>
+:root{
+  --bg:#f3edd9; --bg2:#e8dfc8; --card:linear-gradient(180deg,#f6f0df 0%,#efe6cf 100%); --card2:linear-gradient(180deg,#f3ebd6 0%,#e9dcc0 100%);
+  --gold:#8c6b48; --gold2:#a08060; --gold3:#c8b898;
+  --red:#5c2018; --red2:#8b3a30; --red3:#dcc8b8;
+  --ink:#222222; --ink2:#3d3028; --ink3:#6b5840; --ink4:#9b8870;
+  --jade:#4a6b50; --jade2:#7a9b80;
+  --blue:#3a4a60; --blue2:#6a7a90;
+  --border:rgba(74,56,39,0.2); --border2:rgba(74,56,39,0.35);
+  --shadow:0 2px 16px rgba(34,34,34,0.06);
+  --radius:6px; --radius2:4px;
+  --font-serif:'Noto Serif SC','STSong','SimSun','Songti SC',serif;
+  --font-sans:'Noto Serif SC','STSong','SimSun','Songti SC',serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:var(--font-serif);background:var(--bg);color:var(--ink);line-height:1.8;font-weight:700}
+body::before{content:'';position:fixed;inset:0;background:url('bg_main.gif') center/cover fixed no-repeat;opacity:.70;pointer-events:none;z-index:0}
+#bgVideo{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 35%;z-index:-1;opacity:.7;pointer-events:none;transform:scale(1.3)}
+/* Paper grain overlay */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.04;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-repeat:repeat;background-size:200px 200px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{display:none}
+*{scrollbar-width:none}
+
+/* HEADER */
+.header{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(246,240,223,0.15);border-bottom:none;padding:0 32px;height:68px;display:flex;align-items:center;justify-content:space-between;box-shadow:none}
+.header-l{display:flex;align-items:center;gap:14px}
+.hlogo{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--red2));display:flex;align-items:center;justify-content:center;font-family:var(--font-serif);font-size:24px;font-weight:900;color:#fff;border:3px solid var(--gold3);box-shadow:0 2px 8px rgba(139,26,26,0.2)}
+.htitle{font-family:var(--font-serif);font-size:20px;font-weight:700;letter-spacing:3px;color:var(--red)}
+.htitle span{color:var(--gold)}
+.hsub{font-size:10px;color:var(--ink3);letter-spacing:1px}
+.hnav{display:flex;gap:2px}
+.hnav button{background:none;border:none;color:var(--ink2);padding:8px 16px;border-radius:0;cursor:pointer;font-family:var(--font-serif);font-size:14px;font-weight:600;transition:all .3s;letter-spacing:3px;position:relative}
+.hnav button::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:0;height:1px;background:var(--red2);transition:width .3s}
+.hnav button:hover{color:var(--ink);text-shadow:0 0 1px rgba(0,0,0,0.3)}
+.hnav button:hover::after{width:60%}
+.hnav button.active{color:var(--red);font-weight:700;text-shadow:0 0 1px rgba(92,32,24,0.2)}
+.hnav button.active::after{width:80%;height:2px;background:var(--red)}
+.hsearch{position:relative;width:260px}
+.hsearch input{width:100%;padding:9px 38px 9px 16px;background:var(--card);border:none;border-radius:24px;color:var(--ink);font-family:inherit;font-size:13px;outline:none;transition:all .3s;box-shadow:0 1px 4px rgba(34,34,34,0.06)}
+.hsearch input:focus{box-shadow:0 2px 8px rgba(140,107,72,0.15)}
+.sicon{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--ink4);pointer-events:none;font-size:14px}
+
+/* MAIN */
+.main{position:relative;z-index:1;max-width:100%;margin:0 auto;height:100vh;padding-bottom:0}
+.sec{display:none}.sec.active{display:block;height:100%}
+.scroll-wrap{height:100%;overflow-y:scroll;scroll-snap-type:y mandatory;scroll-snap-stop:always;-webkit-overflow-scrolling:touch}
+.sub-page{height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:flex-start;padding:0;overflow-y:auto;position:relative;max-width:100%;margin:0;width:100%;gap:0}
+#s-intro .sub-page{padding:0!important;max-width:100%!important;border-radius:0!important;overflow:hidden!important;height:100vh!important}
+#s-overview .sub-page{padding:0!important;max-width:100%!important;border-radius:0!important;overflow:hidden!important;height:100vh!important}
+#s-overview .sub-page{padding:0!important;max-width:100%!important;border-radius:0!important;overflow:hidden!important;height:100vh!important}
+#s-overview .cpnl{display:flex!important;flex-direction:column!important;justify-content:center!important;background:#f6f0df!important;flex:1!important;margin:0!important;height:100%!important}
+#s-overview .cpnl{display:flex!important;flex-direction:column!important;justify-content:center!important;padding-top:68px!important;background:#f6f0df!important}
+.sub-page>*{flex:1;min-height:0;margin:0}
+.sub-page::-webkit-scrollbar{width:4px}
+.sub-page::-webkit-scrollbar-thumb{background:rgba(139,100,50,0.15);border-radius:2px}
+/* Scroll indicator */
+.ov-btn{padding:10px 18px;background:linear-gradient(180deg,#f6f0df,#e8dcc8);border:1px solid rgba(140,107,72,0.25);color:#4a3020;font-family:var(--font-serif);font-size:13px;font-weight:700;letter-spacing:1px;border-radius:6px;cursor:pointer;transition:all .25s;box-shadow:0 2px 6px rgba(0,0,0,0.06)}
+.ov-btn:hover{background:linear-gradient(180deg,#ede0c8,#ddd0b8)}
+.scroll-ind{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#c8a060;font-size:24px;animation:bounce 1.5s infinite;pointer-events:none;z-index:10;text-shadow:0 0 6px rgba(0,0,0,0.3)}
+@keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0);opacity:0.7}50%{transform:translateX(-50%) translateY(10px);opacity:1}}
+
+/* STAT CARDS */
+.scards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.scard{background:rgba(246,240,223,0.3);border:none;border-radius:var(--radius);padding:22px 24px;transition:all .2s ease;cursor:default;position:relative;overflow:hidden;box-shadow:0 2px 8px rgba(34,34,34,0.04)}
+.scard::after{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;background:radial-gradient(circle,rgba(140,107,72,0.04),transparent 60%);border-radius:50%}
+.scard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(34,34,34,0.1);background:rgba(248,242,226,0.45)}
+.scard:active{transform:scale(.98)}
+.scard.clickable{cursor:pointer}.scard.clickable:hover{box-shadow:0 6px 20px rgba(92,32,24,0.14)}
+.scard .si{font-size:28px;margin-bottom:6px;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))}.scard .sv{font-size:30px;font-weight:700;font-family:var(--font-serif);text-shadow:0 1px 2px rgba(0,0,0,0.3)}
+.scard .sl{font-size:12px;color:var(--ink3);margin-top:2px;font-weight:600}
+.scard:nth-child(1) .sv{color:#5c2018}.scard:nth-child(2) .sv{color:#8c6b48}.scard:nth-child(3) .sv{color:#4a6b50}.scard:nth-child(4) .sv{color:#3a4a60}
+
+/* CHART GRID */
+.crow{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.crow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.crow12{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:16px}
+.crow21{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.cpnl{background:rgba(246,240,223,0.3);border:none;border-radius:var(--radius);padding:22px;transition:all .2s ease;box-shadow:0 2px 12px rgba(34,34,34,0.05);position:relative}
+.cpnl::after{content:none}
+.cpnl:hover{box-shadow:0 4px 20px rgba(34,34,34,0.1);background:rgba(248,242,226,0.4)}
+.cpnl:active{transform:scale(.995)}
+.cpnl.fw{grid-column:1/-1}
+.ptitle{font-family:var(--font-serif);font-size:15px;font-weight:700;margin-bottom:3px;letter-spacing:1.5px;display:flex;align-items:center;gap:8px;color:var(--ink)}
+.ptitle::before{content:'';display:inline-block;width:4px;height:18px;background:linear-gradient(180deg,var(--red2),var(--gold));border-radius:2px}
+.psub{font-size:11px;color:var(--ink4);margin-bottom:16px;font-weight:600}
+.ct{width:100%}.ct.h300{height:300px}.ct.h350{height:350px}.ct.h380{height:380px}.ct.h400{height:400px}.ct.h420{height:420px}.ct.h450{height:450px}.ct.h500{height:500px}.ct.h550{height:550px}.ct.h600{height:600px}.ct.h650{height:650px}
+
+/* SEARCH DROPDOWN */
+.sr{display:none;position:absolute;top:100%;left:0;right:0;margin-top:8px;background:linear-gradient(180deg,#fdf9f2 0%,#f8f0e0 100%);border:1px solid var(--border2);border-radius:var(--radius2);max-height:400px;overflow-y:auto;box-shadow:0 8px 32px rgba(44,24,16,0.12);z-index:200}
+.sr.show{display:block}.sri{padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:all .2s}
+.sri:hover{background:var(--bg2)}.sri .rt{font-weight:600;font-size:14px;color:var(--ink2)}.sri .rm{font-size:11px;color:var(--ink4);margin-top:2px}.sri .rc{font-size:11px;color:var(--gold);margin-top:2px}
+.sri:first-child{border-radius:var(--radius2) var(--radius2) 0 0}.sri:last-child{border-radius:0 0 var(--radius2) var(--radius2)}
+
+/* MODAL */
+.mo{display:none;position:fixed;inset:0;background:rgba(44,24,16,0.6);z-index:500;align-items:center;justify-content:center}
+.mo.show{display:flex}.mc{background:linear-gradient(180deg,#f6f0df 0%,#efe6cf 100%);border:none;border-radius:var(--radius);padding:24px;max-width:440px;max-height:80vh;overflow-y:auto;width:90%;animation:mi .35s ease;box-shadow:0 12px 40px rgba(44,24,16,0.12)}
+@keyframes mi{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.mcl{position:sticky;top:0;float:right;background:none;border:none;color:var(--ink4);font-size:26px;cursor:pointer;line-height:1}
+.mcl:hover{color:var(--red)}.mt{font-family:var(--font-serif);font-size:24px;font-weight:700;margin-bottom:18px;color:var(--ink)}
+.ms{margin-bottom:18px}.ms h4{font-size:13px;color:var(--red);margin-bottom:6px;letter-spacing:1px}.ms p{font-size:13px;color:var(--ink3);line-height:1.9}
+.mtags{display:flex;flex-wrap:wrap;gap:6px}
+.mtag{padding:4px 12px;border-radius:14px;font-size:11px;background:rgba(184,134,11,0.08);color:var(--gold);border:1px solid rgba(184,134,11,0.2)}
+
+/* HERO BANNER */
+.hero{border-radius:0;padding:80px 64px;margin-bottom:0;display:flex;flex-direction:column;justify-content:center;height:100vh;color:#1a0800;position:relative;overflow:hidden;border:none;background:url('bg_hero.png') center/cover no-repeat;box-shadow:0 4px 20px rgba(34,34,34,0.08)}
+.hero::before{content:'';position:absolute;inset:0;background:rgba(255,252,245,0.35);z-index:0;pointer-events:none}
+.hero>*{position:relative;z-index:1}
+.hero::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='80' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='10' cy='10' r='2' fill='rgba(255,255,255,0.05)'/%3E%3Ccircle cx='40' cy='15' r='1.5' fill='rgba(255,255,255,0.04)'/%3E%3Ccircle cx='70' cy='5' r='2.5' fill='rgba(255,255,255,0.03)'/%3E%3Ccircle cx='20' cy='50' r='1' fill='rgba(255,255,255,0.06)'/%3E%3Ccircle cx='60' cy='60' r='2' fill='rgba(255,255,255,0.04)'/%3E%3C/svg%3E")}
+.hero>*{position:relative;z-index:1}
+.hero h1{font-family:var(--font-serif);font-size:36px;font-weight:900;letter-spacing:6px;margin-bottom:8px}
+.hero h1 span{color:var(--gold2)}
+.hero .hero-sub{font-size:14px;opacity:.8;letter-spacing:2px;margin-bottom:16px}
+.hero .hero-desc{font-size:13px;opacity:.75;max-width:700px;line-height:1.8}
+
+/* TIMELINE */
+.tl-panel{position:relative;overflow:hidden}
+.tl-panel::before{content:'';position:absolute;inset:0;background:url('bg_timeline.png') center/cover no-repeat;opacity:.70;z-index:0;pointer-events:none}
+.tl-panel .ptitle,.tl-panel .psub{position:relative;z-index:1}
+.tl-panel .ptitle{color:#1a0800}
+.tl-panel .psub{color:#3d2818}
+.role-panel,.style-panel,.wc-panel{position:relative;overflow:hidden;background:rgba(246,240,223,0.3)!important}
+#s-role,#s-network,#s-theme,#s-compare{padding-top:68px}
+#s-role .cpnl,#s-network .cpnl,#s-theme .cpnl,#s-compare .cpnl{background:rgba(246,240,223,0.3)!important}
+.wc-panel::before{content:'';position:absolute;inset:0;background:url('bg_wc.png') center/cover no-repeat;opacity:.7;z-index:0;pointer-events:none}
+.wc-panel>*{position:relative;z-index:1}
+.src-panel{position:relative;overflow:hidden;background:rgba(246,240,223,0.3)!important}
+.src-panel::before{content:'';position:absolute;inset:0;background:url('bg_src.png') center/cover no-repeat;opacity:.7;z-index:0;pointer-events:none}
+.src-panel>*{position:relative;z-index:1}
+.bot-panel{position:relative;overflow:hidden}
+.bot-panel::before{content:'';position:absolute;inset:0;background:url('bg_bottom.png') center/cover no-repeat;opacity:.7;z-index:0;pointer-events:none}
+.bot-panel>*{position:relative;z-index:1}
+.bot-panel .ptitle{color:#1a0800;font-size:17px;font-weight:800}
+.bot-panel .psub{color:#3d1808;font-weight:600}
+.timeline{position:relative;padding:30px 0;z-index:1}
+.timeline::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#d4a574,#c41e3a,#b8860b,#c41e3a,#d4a574);border-radius:2px;box-shadow:0 0 12px rgba(184,134,11,0.15)}
+.tle{display:flex;align-items:flex-start;margin-bottom:32px;position:relative;opacity:0;transform:translateY(20px);animation:tlFadeIn .6s ease forwards}
+.tle:nth-child(1){animation-delay:0s}.tle:nth-child(2){animation-delay:.12s}.tle:nth-child(3){animation-delay:.24s}.tle:nth-child(4){animation-delay:.36s}.tle:nth-child(5){animation-delay:.48s}.tle:nth-child(6){animation-delay:.6s}
+@keyframes tlFadeIn{to{opacity:1;transform:translateY(0)}}
+.tle:nth-child(odd){flex-direction:row}.tle:nth-child(even){flex-direction:row-reverse}
+.tle .tldot{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#c41e3a,#8b1a1a);border:3px solid #f0dbb0;position:absolute;left:50%;transform:translateX(-50%);z-index:2;box-shadow:0 0 0 6px rgba(184,134,11,0.1),0 0 16px rgba(194,58,43,0.2);transition:all .3s}
+.tle:hover .tldot{box-shadow:0 0 0 10px rgba(184,134,11,0.2),0 0 24px rgba(194,58,43,0.35);transform:translateX(-50%) scale(1.3)}
+.tle .tlcontent{width:43%;padding:20px 24px;background:linear-gradient(135deg,rgba(250,243,224,0.5) 0%,rgba(240,219,181,0.5) 100%);border:1px solid rgba(184,134,11,0.3);border-radius:10px;box-shadow:0 3px 16px rgba(139,100,20,0.08);transition:all .35s;position:relative}
+.tle .tlcontent:hover{border-color:var(--gold2);box-shadow:0 6px 28px rgba(44,24,16,0.12);transform:translateY(-3px)}
+.tle .tlcontent:hover::before{border-color:var(--gold2)}
+.tle .tlcontent::before{content:'';position:absolute;top:20px;width:10px;height:10px;background:linear-gradient(135deg,rgba(250,243,224,0.5),rgba(240,219,181,0.5));border:1px solid var(--border);transform:rotate(45deg)}
+.tle:nth-child(odd) .tlcontent::before{right:-6px;border-left:none;border-bottom:none}
+.tle:nth-child(even) .tlcontent::before{left:-6px;border-right:none;border-top:none}
+.tle .tlyear{font-family:var(--font-serif);font-size:20px;font-weight:900;color:#3d1008;letter-spacing:2px;display:flex;align-items:center;gap:8px}
+.tle .tlyear::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--gold3),transparent)}
+.tle:nth-child(even) .tlyear::after{display:none}
+.tle:nth-child(even) .tlyear::before{content:'';flex:1;height:1px;background:linear-gradient(270deg,var(--gold3),transparent)}
+.tle .tltext{font-size:13px;color:#3d2818;margin-top:8px;line-height:1.8}
+.tle .tlextra{font-size:12px;color:#5c3a28;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border);line-height:1.7}
+
+/* FOOTER */
+.footer{display:none}
+
+/* LOADING */
+.ld{display:flex;align-items:center;justify-content:center;padding:100px 20px}.ls{width:40px;height:40px;border:3px solid var(--gold3);border-top-color:var(--red);border-radius:50%;animation:sp .8s linear infinite;margin-right:14px}
+@keyframes sp{to{transform:rotate(360deg)}}.ltx{color:var(--ink3);font-size:14px}
+
+/* NETWORK FILTER */
+.nfbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.nfbar input{padding:7px 14px;border:1px solid var(--border2);border-radius:20px;font-family:inherit;font-size:12px;outline:none;background:var(--card);color:var(--ink);width:200px}
+.nfbar input:focus{border-color:var(--gold)}.nfbar .nfcount{font-size:11px;color:var(--ink4);display:flex;align-items:center}
+
+/* RESPONSIVE */
+@media(max-width:1400px){.crow3{grid-template-columns:1fr 1fr}}
+@media(max-width:1000px){.crow,.crow3,.crow12,.crow21{grid-template-columns:1fr}.scards{grid-template-columns:repeat(2,1fr)}.hnav button{font-size:11px;padding:6px 10px}.hsearch{width:160px}}
+@media(max-width:640px){.main{padding:16px}.header{padding:0 12px}.hnav{display:none}}
+
+/* SECTION HEADER */
+.sech{text-align:center;padding:24px 0 16px}.sech h2{font-family:var(--font-serif);font-size:28px;color:var(--ink);letter-spacing:3px}.sech h2 span{color:var(--red)}.sech p{color:var(--ink4);font-size:13px;margin-top:4px;letter-spacing:1px}
+
+/* NUMBER ANIMATION */
+.num-up{transition:all .6s ease-out}
+
+/* OVERVIEW CHART INFO BOX */
+.ov-wrap{display:flex;gap:16px;height:100%;align-items:stretch}
+.ov-info{width:280px;flex-shrink:0;background:linear-gradient(180deg,rgba(253,248,240,0.92) 0%,rgba(246,240,223,0.88) 100%);border:1px solid rgba(184,134,11,0.2);border-radius:var(--radius);padding:22px 18px;display:flex;flex-direction:column;box-shadow:0 2px 12px rgba(44,24,16,0.06);position:relative;overflow:hidden}
+.ov-info::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--red2),var(--gold),var(--jade));border-radius:var(--radius) var(--radius) 0 0}
+.ov-info::after{content:'';position:absolute;bottom:0;right:0;width:60px;height:60px;background:radial-gradient(circle,rgba(184,134,11,0.06),transparent 70%);border-radius:50%}
+.ov-info-t{font-family:var(--font-serif);font-size:15px;font-weight:700;color:var(--red);letter-spacing:2px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed rgba(184,134,11,0.25);position:relative;z-index:1}
+.ov-info-t::before{content:'◆';color:var(--gold);margin-right:6px;font-size:12px}
+.ov-info-d{flex:1;font-size:12.5px;color:var(--ink3);line-height:2;position:relative;z-index:1;overflow-y:auto}
+.ov-info-d::-webkit-scrollbar{width:3px}
+.ov-info-d::-webkit-scrollbar-thumb{background:rgba(139,100,50,0.15);border-radius:2px}
+.ov-info-d p{margin-bottom:10px}
+.ov-info-d b{color:var(--red2);font-weight:700}
+.ov-info-d .highlight{background:linear-gradient(180deg,transparent 60%,rgba(184,134,11,0.15) 60%);padding:0 2px}
+.ov-info-d .stat-row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+.ov-info-d .stat-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0}
+.ov-chart-wrap{flex:1;position:relative;min-width:0}
+.ov-chart{display:flex!important;flex-direction:column}
+.ov-chart>div{height:100%}
+@media(max-width:600px){.ov-info{display:none}}
+
+/* CHART ANIMATION */
+@keyframes chartFadeIn{from{opacity:0;transform:translateY(20px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes chartSlideIn{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:translateX(0)}}
+@keyframes barGrow{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@keyframes pieScale{from{opacity:0;transform:scale(0.7) rotate(-10deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+.ov-anim{animation:chartFadeIn 0.7s cubic-bezier(0.22,1,0.36,1) forwards}
+.ov-anim-d1{animation-delay:0.1s;opacity:0}
+.ov-anim-d2{animation-delay:0.25s;opacity:0}
+.ov-anim-d3{animation-delay:0.4s;opacity:0}
+.ov-anim-d4{animation-delay:0.55s;opacity:0}
+</style>
+</head>
+<body>
+<video id="bgVideo" autoplay muted loop playsinline><source src="bg_main.mp4" type="video/mp4"></video>
+<header class="header">
+<div class="header-l">
+<div class="hlogo">戏</div>
+<div><div class="htitle">戏韵<span>千秋</span></div><div class="hsub">CHINAVIS 2026 · 京剧数据可视分析系统</div></div>
+</div>
+<nav class="hnav" id="nav">
+<button class="active" data-s="intro">文化纵览</button>
+<button data-s="overview">数据概览</button>
+<button data-s="role">角色行当</button>
+<button data-s="network">关系网络</button>
+<button data-s="theme">主题分析</button>
+<button data-s="compare">跨剧比较</button>
+</nav>
+<div class="hsearch">
+<input id="si" placeholder="搜索剧本、角色、主题..." onfocus="if(this.value.length>=1)doS(this.value)">
+<span class="sicon">🔍</span>
+<div class="sr" id="sr"></div>
+</div>
+</header>
+
+<main class="main">
+<div class="ld" id="ld"><div class="ls"></div><span class="ltx">正在加载京剧剧本数据...</span></div>
+<div id="as" style="display:none"></div>
+</main>
+
+<footer class="footer">数据来源：中国京剧戏考 · 京剧汇编 · 戏考大全 · 名家演出剧本选集等 &nbsp;|&nbsp; 1,473部京剧剧本 · 7,896条角色记录 &nbsp;|&nbsp; ChinaVis 2026 可视化竞赛作品</footer>
+<div class="mo" id="mo"><div class="mc" id="mc"></div></div>
+
+<script type="application/json" id="dash-data">%DASHBOARD_DATA_PLACEHOLDER%</script>
+<!-- 独立诊断脚本块：如果主脚本有语法错误，这个块仍能运行 -->
+<script>
+try{
+  var DD=JSON.parse(document.getElementById('dash-data').textContent);
+  document.getElementById('ld').querySelector('.ltx').textContent='✅ 数据加载成功: '+DD.overview.total_operas+'个剧本, 正在初始化...';
+}catch(e){
+  document.getElementById('ld').innerHTML='<div style="text-align:center;padding:40px;color:red;font-size:18px"><h3>❌ 数据加载错误</h3><pre>'+e.message+'</pre></div>';
+}
+</script>
+<script>
+var D=JSON.parse(document.getElementById('dash-data').textContent);
+var oi=null,as='intro',ch={},secR={};
+var P1=['#8b1a1a','#b8860b','#4a7c59','#3a5a7c','#c41e3a','#d4a574','#6b8eaa','#8fbc8f','#5c3a28','#b87333'];
+var P2=['#c41e3a','#d4a574','#4a7c59','#6b8eaa','#8b1a1a','#b8860b','#3a5a7c','#8fbc8f','#b87333','#5c3a28'];
+
+function $(id){return document.getElementById(id)}
+function mc(id){
+  var d=$(id);if(!d)return null;if(ch[id])try{ch[id].dispose()}catch(e){};var c=echarts.init(d);ch[id]=c;return c
+}
+function bo(){
+  return{backgroundColor:'transparent',textStyle:{color:'#5c3a28',fontFamily:"'Noto Sans SC','Microsoft YaHei',sans-serif"},
+    legend:{textStyle:{color:'#5c3a28',fontSize:12},top:0,itemGap:14},
+    tooltip:{backgroundColor:'rgba(253,248,240,0.97)',borderColor:'#d4a574',textStyle:{color:'#2c1810',fontSize:12},
+      extraCssText:'font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;border-radius:8px;padding:12px;box-shadow:0 4px 16px rgba(0,0,0,0.12)'}}
+}
+function pc(i,p){p=p||P1;return p[i%p.length]}
+
+// ======== SCROLL-SNAP WRAPPER ========
+function wrapScrollSnap(){
+  var secs=['s-intro','s-overview'];
+  // 5 button toggle for overview
+  setTimeout(function(){
+    var btns=document.querySelectorAll('.ov-btn');
+    btns.forEach(function(b){b.addEventListener('click',function(){
+      btns.forEach(function(x){x.classList.remove('active');x.style.background='linear-gradient(180deg,#f6f0df,#e8dcc8)';x.style.color='#4a3020'});this.classList.add('active');this.style.background='linear-gradient(180deg,#8b6b48,#6b4b30)';this.style.color='#fff';
+      var c=this.dataset.chart;document.querySelectorAll('.ov-chart').forEach(function(x){x.style.opacity='0';x.style.pointerEvents='none';x.style.position='absolute';x.style.top='0';x.style.left='0'});
+      var t=document.getElementById('ov-c'+c);if(t){t.style.opacity='1';t.style.pointerEvents='auto';t.style.position='relative';var info=t.querySelector('.ov-info');if(info){info.classList.remove('ov-anim');void info.offsetWidth;info.classList.add('ov-anim')}setTimeout(function(){Object.keys(ch).forEach(function(k){try{ch[k].resize()}catch(e){}})},100)}
+    })});
+  },1500);
+  secs.forEach(function(id){
+    var sec=$(id);if(!sec)return;
+    var wrap=document.createElement('div');wrap.className='scroll-wrap';
+    var children=Array.from(sec.children);
+    // For intro: each major block = its own sub-page
+    // For others: group 2 per sub-page
+    var plan=(id==='s-intro'||id==='s-overview')?[1,1]:[2,2,2,2,2,2,2,2,2,2];
+    var sub=document.createElement('div');sub.className='sub-page';var cnt=0,pi=0;
+    children.forEach(function(child,i){
+      sub.appendChild(child);cnt++;
+      var limit=plan[pi]||2;
+      if(cnt>=limit&&i<children.length-1){
+        wrap.appendChild(sub);sub=document.createElement('div');sub.className='sub-page';
+        cnt=0;pi++;
+      }
+    });
+    if(sub.children.length>0)wrap.appendChild(sub);
+    // Remove scroll indicator for cleaner look
+    // Footer at bottom of last page (skip intro which has its own)
+    if(id!=='s-intro'){
+      var ft=document.createElement('div');ft.style.cssText='text-align:center;padding:8px 32px;font-size:11px;color:#000;letter-spacing:1px;font-weight:600;position:absolute;bottom:0;left:0;right:0;z-index:5';
+      ft.innerHTML='数据来源：中国京剧戏考 · 京剧汇编 · 戏考大全 · 名家演出剧本选集等 &nbsp;|&nbsp; 1,473部京剧剧本 · 7,896条角色记录 &nbsp;|&nbsp; ChinaVis 2026 可视化竞赛作品';
+      // Append to last panel in sub-page instead of sub-page itself
+      var panels=sub.querySelectorAll('.cpnl');
+      if(panels.length>0){panels[panels.length-1].appendChild(ft);panels[panels.length-1].style.position='relative'}else{sub.appendChild(ft)}
+    }
+    while(sec.firstChild)sec.removeChild(sec.firstChild);
+    sec.appendChild(wrap);
+  });
+  // CSS scroll-snap handles page switching natively
+}
+
+// ======== BUILD SECTIONS ========
+function bAll(){
+  var h='',ov=D.overview,net=D.character_network;
+
+  // === INTRO ===
+  h+='<section class="sec active" id="s-intro">';
+  h+='<div class="hero" style="padding:44px 52px;min-height:520px"><h1>戏韵<span>千秋</span></h1><div class="hero-sub">京剧文化数字传承与智能表达 · ChinaVis 2026</div><div class="hero-desc">京剧，又称平剧、京戏，中国国粹之一，被誉为"国剧"，是中华民族传统文化的重要代表。京剧融合文学、表演、音乐、美术于一体，以唱、念、做、打为基本表演手段，生旦净丑各行当分工明确，形成了独特的艺术体系。从1790年四大徽班进京至今，京剧已有230余年历史，经历了形成、成熟、鼎盛、改革与创新等发展阶段。2010年，京剧被列入联合国教科文组织人类非物质文化遗产代表作名录。<br><br><strong>行当体系：</strong>京剧角色分为生、旦、净、丑四大行当。本数据集共标注<strong>7,896条</strong>角色记录，其中生行3,091次占比最高（老生、小生、武生），旦行1,436次（正旦、花旦、老旦），净行1,317次（铜锤、架子花脸），丑行1,093次（文丑、武丑）。<br><br><strong>唱腔板式：</strong>京剧唱腔以西皮、二黄为主，辅以吹腔、反二黄、四平调、南梆子等。数据统计显示西皮出现21,761次为最多，二黄6,753次居次，体现了京剧音乐的主体特征。<br><br>本系统基于<strong>1,473部</strong>京剧剧本数据集，运用数据可视化技术，从角色行当、人物关系、主题表达、叙事结构等多维度展开系统分析，探索京剧艺术的数字化研究新范式。</div><div style="display:flex;gap:20px;margin-top:24px;flex-wrap:wrap"><div style="flex:1;min-width:100px;text-align:center"><div style="font-size:32px;font-weight:900;color:#fff">'+ov.total_operas.toLocaleString()+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:700">📜 京剧剧本总数</div></div><div style="flex:1;min-width:100px;text-align:center"><div style="font-size:32px;font-weight:900;color:#fff">'+ov.total_characters.toLocaleString()+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:700">🎭 角色记录总数</div></div><div style="flex:1;min-width:100px;text-align:center;cursor:pointer" onclick="showSourceDetail()"><div style="font-size:32px;font-weight:900;color:#fff">'+ov.total_sources+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:700">📚 文献来源数 ▸</div></div><div style="flex:1;min-width:100px;text-align:center;cursor:pointer" onclick="showDirDetail()"><div style="font-size:32px;font-weight:900;color:#fff">'+ov.total_directories+'</div><div style="font-size:12px;color:rgba(255,255,255,0.85);font-weight:700">📖 目录分类数 ▸</div></div></div></div>';
+
+  h+='<div style="position:relative;background:url(\'bg_book.png\') center/cover no-repeat;height:100%;width:100%;padding-top:0">';
+  h+='<iframe src="opera3d_book.html?v=2" style="width:100%;height:100%;border:none;border-radius:6px;background:transparent" scrolling="no" allowtransparency="true"></iframe>';
+  h+='<div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;color:#000;font-size:11px;font-weight:700;letter-spacing:1px;z-index:5;text-shadow:0 0 6px rgba(255,255,255,0.7)">数据来源：中国京剧戏考 · 京剧汇编 · 戏考大全 · 名家演出剧本选集等 &nbsp;|&nbsp; 1,473部京剧剧本 · 7,896条角色记录 &nbsp;|&nbsp; ChinaVis 2026 可视化竞赛作品</div></div>';
+
+  h+='</div></div></div>';
+  h+='</div></section>';
+
+  // === OVERVIEW ===
+  h+='<section class="sec" id="s-overview"><div class="scroll-wrap">';
+  // Sub-page 1: 5 individual buttons + charts
+  h+='<div class="sub-page"><div class="cpnl fw src-panel" style="flex:1;display:flex;flex-direction:column"><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;justify-content:center" id="ov-btns">';
+  h+='<button class="ov-btn active" data-chart="0">📊 剧本来源分布</button>';
+  h+='<button class="ov-btn" data-chart="1">🎯 目录分类</button>';
+  h+='<button class="ov-btn" data-chart="2">📏 篇幅分布</button>';
+  h+='<button class="ov-btn" data-chart="3">🎬 场次分布</button>';
+  h+='<button class="ov-btn" data-chart="4">👤 角色分布</button>';
+  h+='</div><div id="ov-area" style="flex:1;position:relative">';
+  // Chart 0: 剧本来源分布
+  h+='<div class="ov-chart" id="ov-c0" style="position:relative;width:100%;height:100%"><div class="ov-wrap"><div class="ov-info ov-anim"><div class="ov-info-t">剧本来源分布</div><div class="ov-info-d"><p>本图展示了 <b>1,473部</b> 京剧剧本的文献来源构成。数据来源涵盖戏考大全、京剧汇编、名家演出剧本选集等 <b>25个</b> 不同文献渠道。</p><p>其中，<span class="highlight">"未知"来源占比最高</span>，达1,288部；其次是振飞曲谱45部、关羽戏集27部等。这些来源反映了京剧剧本的传承脉络——既有民间戏考的整理，也有名家演出本的记录，体现了京剧艺术从民间到舞台的多元传承路径。</p><div class="stat-row"><span class="stat-dot"></span>横向柱状图直观对比各来源数量</div><div class="stat-row"><span class="stat-dot"></span>颜色渐变区分不同来源层级</div><div class="stat-row"><span class="stat-dot"></span>右侧标注具体剧本数量</div></div></div><div class="ov-chart-wrap"><div class="ct" id="c-ov-src" style="height:100%"></div></div></div></div>';
+  // Chart 1: 目录分类
+  h+='<div class="ov-chart" id="ov-c1" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;pointer-events:none"><div class="ov-wrap"><div class="ov-info"><div class="ov-info-t">目录分类分布</div><div class="ov-info-d"><p>本图以 <b>玫瑰图（南丁格尔图）</b> 形式展示京剧剧本的目录分类结构。全部分为 <b>38个</b> 原始目录，归纳为戏考·传统剧目、戏考·家庭伦理、戏考·历史剧目、戏考·公案剧目、京剧汇编、名家演出本等大类。</p><p><span class="highlight">戏考·传统剧目</span>以448部居首，占比最高；戏考·家庭伦理360部次之。玫瑰图通过扇区面积直观呈现各类别占比差异，扇区半径越大代表该类别剧本数量越多。</p><div class="stat-row"><span class="stat-dot"></span>面积大小反映各类别剧本数量</div><div class="stat-row"><span class="stat-dot"></span>颜色区分不同目录大类</div><div class="stat-row"><span class="stat-dot"></span>悬停查看具体数值与百分比</div></div></div><div class="ov-chart-wrap"><div class="ct" id="c-ov-sun" style="height:100%"></div></div></div></div>';
+  // Chart 2: 篇幅分布
+  h+='<div class="ov-chart" id="ov-c2" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;pointer-events:none"><div class="ov-wrap"><div class="ov-info"><div class="ov-info-t">剧本篇幅分布</div><div class="ov-info-d"><p>本图以 <b>环形图</b> 展示1,473部京剧剧本的篇幅长度分布。篇幅按字符数划分为短篇(<1K)、中短篇(1K-3K)、中篇(3K-6K)、中长篇(6K-10K)、长篇(10K-20K)、超长篇(>20K)六个区间。</p><p>从图中可以看出，<span class="highlight">中短篇(1K-3K)</span> 和 <span class="highlight">短篇(<1K)</span> 剧本占比较高，反映了传统京剧剧本以精炼见长、注重唱念做打综合表演而非冗长叙事的艺术特点。超长剧本多为连台本戏或全本大戏。</p><div class="stat-row"><span class="stat-dot"></span>环形图内外半径展示占比关系</div><div class="stat-row"><span class="stat-dot"></span>六档篇幅区间覆盖全部剧本</div><div class="stat-row"><span class="stat-dot"></span>悬停查看各区间具体数量</div></div></div><div class="ov-chart-wrap"><div class="ct" id="c-ov-len" style="height:100%"></div></div></div></div>';
+  // Chart 3: 场次分布
+  h+='<div class="ov-chart" id="ov-c3" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;pointer-events:none"><div class="ov-wrap"><div class="ov-info"><div class="ov-info-t">剧本场次分布</div><div class="ov-info-d"><p>本图以 <b>柱状图</b> 展示京剧剧本的场次数分布。全数据集平均场次为 <b>8.2场</b>，最多达71场。场次是衡量剧本叙事体量的重要指标，也反映了京剧"折子戏"传统——许多经典剧目由若干折（场）组成，可独立演出。</p><p>从分布来看，<span class="highlight">场次集中在4-12场之间</span>的剧本数量最多，符合传统京剧"一本四折"或"一本八场"的常见结构。超过20场的长篇剧目多为全本大戏或连台本戏。</p><div class="stat-row"><span class="stat-dot"></span>X轴为场次数，Y轴为剧本数量</div><div class="stat-row"><span class="stat-dot"></span>渐变色柱体增强视觉层次</div><div class="stat-row"><span class="stat-dot"></span>圆角设计体现传统美学</div></div></div><div class="ov-chart-wrap"><div class="ct" id="c-ov-scn" style="height:100%"></div></div></div></div>';
+  // Chart 4: 角色分布
+  h+='<div class="ov-chart" id="ov-c4" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;pointer-events:none"><div class="ov-wrap"><div class="ov-info"><div class="ov-info-t">剧本角色分布</div><div class="ov-info-d"><p>本图以 <b>柱状图</b> 展示每部京剧剧本的角色数量分布。全数据集平均角色数为 <b>5.4个</b>，最多达48个角色。角色数量是衡量剧本人物关系复杂度的重要维度。</p><p>从分布可见，<span class="highlight">3-8个角色</span>的剧本最为常见，体现了京剧行当体系精简高效的特点——生旦净丑四大行当即可撑起一台大戏。角色过多的剧本多为群戏或历史大戏，如《群英会》《长坂坡》等。</p><div class="stat-row"><span class="stat-dot"></span>X轴为角色数，Y轴为剧本数量</div><div class="stat-row"><span class="stat-dot"></span>色彩循环区分不同区间</div><div class="stat-row"><span class="stat-dot"></span>角色数与剧本复杂度正相关</div></div></div><div class="ov-chart-wrap"><div class="ct" id="c-ov-chd" style="height:100%"></div></div></div></div>';
+  h+='</div></div></div>';
+  // Sub-page 2: Wordcloud
+  h+='<div class="sub-page"><div class="cpnl fw wc-panel" style="flex:1"><div class="ptitle">关键词云</div><div class="psub">从所有剧本情节摘要中提取的核心词汇</div><div class="ct" id="c-ov-wc" style="height:calc(100% - 40px)"></div></div></div>';
+  h+='</div></section>';
+
+  // === ROLE ===
+  h+='<section class="sec" id="s-role">';
+  h+='<div class="crow"><div class="cpnl"><div class="ptitle">行当大类分布 · 玫瑰图</div><div class="psub">生旦净丑及其他行当的角色数量</div><div class="ct h450" id="c-rl-rose"></div></div><div class="cpnl"><div class="ptitle">细分行当 Top 30</div><div class="psub">具体行当类型频次排序（横向柱状图）</div><div class="ct h450" id="c-rl-bar"></div></div></div>';
+  h+='<div class="cpnl fw" style="margin-bottom:16px"><div class="ptitle">目录分类 × 行当大类 交叉热力图</div><div class="psub">不同来源目录中各类行当的分布热度</div><div class="ct h420" id="c-rl-heat"></div></div>';
+  h+='<div style="text-align:center;padding:10px;color:#000;font-size:11px;font-weight:600;letter-spacing:1px">数据来源：中国京剧戏考 · 京剧汇编 · 戏考大全 · 名家演出剧本选集等 &nbsp;|&nbsp; 1,473部京剧剧本 · 7,896条角色记录 &nbsp;|&nbsp; ChinaVis 2026 可视化竞赛作品</div></section>';
+
+  // === NETWORK ===
+  h+='<section class="sec" id="s-network">';
+  h+='<div class="crow12"><div class="cpnl"><div class="ptitle">核心角色频次 Top 15</div><div class="psub">出现次数最多的角色排行</div><div class="ct h600" id="c-nw-bar"></div></div><div class="cpnl"><div class="ptitle">角色共现关系网络</div><div class="psub">基于同剧本共现构建（节点=频次，连线=共现强度）</div><div class="nfbar"><input id="nw-filt" placeholder="🔍 筛选角色名..." oninput="upNetFilter()"><span class="nfcount" id="nw-count"></span></div><div class="ct h550" id="c-nw-graph"></div></div></div>';
+  h+='<div style="text-align:center;padding:10px;color:#000;font-size:11px;font-weight:600;letter-spacing:1px">数据来源：中国京剧戏考 · 京剧汇编 · 戏考大全 · 名家演出剧本选集等 &nbsp;|&nbsp; 1,473部京剧剧本 · 7,896条角色记录 &nbsp;|&nbsp; ChinaVis 2026 可视化竞赛作品</div></section>';
+
+  // === THEME ===
+  h+='<section class="sec" id="s-theme">';
+  h+='<div class="crow"><div class="cpnl"><div class="ptitle">主题大类分布</div><div class="psub">各主题在剧本中的出现频次</div><div class="ct h450" id="c-th-bar"></div></div><div class="cpnl"><div class="ptitle">主题组合模式 Top 12</div><div class="psub">最常见的主题组合</div><div class="ct h450" id="c-th-cmb"></div></div></div>';
+  h+='<div class="cpnl fw" style="margin-bottom:16px"><div class="ptitle">来源 × 主题 关联柱状图</div><div class="psub">不同文献来源中各主题的剧本数量对比</div><div class="ct h420" id="c-th-heat"></div></div>';
+  h+='<div style="text-align:center;padding:10px;color:#000;font-size:11px;font-weight:600;letter-spacing:1px">数据来源：中国京剧戏考 · 京剧汇编 · 戏考大全 · 名家演出剧本选集等 &nbsp;|&nbsp; 1,473部京剧剧本 · 7,896条角色记录 &nbsp;|&nbsp; ChinaVis 2026 可视化竞赛作品</div></section>';
+
+  // === NARRATIVE ===
+
+  // === COMPARE ===
+  h+='<section class="sec" id="s-compare">';
+  h+='<div style="text-align:center;padding:40px 20px"><div style="font-family:var(--font-serif);font-size:30px;font-weight:700;color:var(--red);margin-bottom:6px;letter-spacing:3px">跨剧本比较分析</div><div style="color:var(--ink4);margin-bottom:28px">选择多个剧本进行多维对比 · 点击搜索框查看推荐</div>';
+  h+='<div style="display:flex;gap:16px;max-width:700px;margin:0 auto 28px;flex-wrap:wrap;justify-content:center">';
+  h+='<div style="flex:1;min-width:280px;position:relative"><input id="cs1" placeholder="🔍 搜索剧本A..." autocomplete="off" style="width:100%;padding:12px 20px;background:var(--card);border:2px solid var(--border2);border-radius:24px;font-family:inherit;font-size:14px;outline:none;color:var(--ink);transition:all .3s" onfocus="this.style.borderColor=\'var(--gold)\';showCSug(1)" onblur="setTimeout(function(){hideCSug(1)},200)" oninput="sc(1,this.value)"><div id="cr1" class="sr" style="position:absolute;top:100%;left:0;right:0;margin-top:4px;max-height:280px;overflow-y:auto;z-index:10;display:none"></div></div>';
+  h+='<div style="flex:1;min-width:280px;position:relative"><input id="cs2" placeholder="🔍 搜索剧本B..." autocomplete="off" style="width:100%;padding:12px 20px;background:var(--card);border:2px solid var(--border2);border-radius:24px;font-family:inherit;font-size:14px;outline:none;color:var(--ink);transition:all .3s" onfocus="this.style.borderColor=\'var(--gold)\';showCSug(2)" onblur="setTimeout(function(){hideCSug(2)},200)" oninput="sc(2,this.value)"><div id="cr2" class="sr" style="position:absolute;top:100%;left:0;right:0;margin-top:4px;max-height:280px;overflow-y:auto;z-index:10;display:none"></div></div>';
+  h+='</div>';
+  h+='<div id="csel" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:28px"></div>';
+  h+='<div id="cca"></div></div>';
+  h+='<div style="text-align:center;padding:10px;color:#000;font-size:11px;font-weight:600;letter-spacing:1px;position:fixed;bottom:0;left:0;right:0">数据来源：中国京剧戏考 · 京剧汇编 · 戏考大全 · 名家演出剧本选集等 &nbsp;|&nbsp; 1,473部京剧剧本 · 7,896条角色记录 &nbsp;|&nbsp; ChinaVis 2026 可视化竞赛作品</div></section>';
+
+  $('as').innerHTML=h;
+}
+
+// ======== RENDER CHARTS ========
+
+// 3D scene refs
+var _3dScene=null,_3dRenderer=null,_3dCamera=null,_3dLabelRenderer=null,_3dControls=null,_3dAnimId=null;
+
+function rIntro(){}
+
+function init3DSpiral(container){
+  import('three').then(function(THREE){
+    import('three/addons/controls/OrbitControls.js').then(function(OC){
+      import('three/addons/renderers/CSS2DRenderer.js').then(function(C2D){
+        _build3D(container, THREE, OC.OrbitControls, C2D.CSS2DRenderer, C2D.CSS2DObject);
+      });
+    });
+  });
+}
+
+function _build3D(container, THREE, OrbitControls, CSS2DRenderer, CSS2DObject){
+  var W=container.clientWidth||500,H=container.clientHeight||420;
+  var scene=new THREE.Scene();
+  scene.background=new THREE.Color('#e3d5ba');
+  var camera=new THREE.PerspectiveCamera(40,W/H,0.3,30);
+  camera.position.set(5,3.5,7);camera.lookAt(0,2.2,0);
+  var renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(W,H);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.5;
+  container.appendChild(renderer.domElement);
+  var labelRenderer=new CSS2DRenderer();
+  labelRenderer.setSize(W,H);labelRenderer.domElement.style.position='absolute';labelRenderer.domElement.style.top='0';labelRenderer.domElement.style.pointerEvents='none';
+  container.appendChild(labelRenderer.domElement);
+  var controls=new OrbitControls(camera,renderer.domElement);
+  controls.target.set(0,2.2,0);controls.enableDamping=true;controls.dampingFactor=0.1;
+  controls.minPolarAngle=0.2;controls.maxPolarAngle=Math.PI*0.7;controls.minDistance=4;controls.maxDistance=15;
+  controls.autoRotate=true;controls.autoRotateSpeed=0.5;controls.update();
+  _3dScene=scene;_3dRenderer=renderer;_3dCamera=camera;_3dLabelRenderer=labelRenderer;_3dControls=controls;
+
+  // Lights
+  scene.add(new THREE.AmbientLight('#e8dcc8',3));
+  var kl=new THREE.DirectionalLight('#fffdf8',4);kl.position.set(5,8,5);kl.castShadow=true;kl.shadow.mapSize.set(1024,1024);kl.shadow.camera.near=0.3;kl.shadow.camera.far=30;kl.shadow.camera.left=-8;kl.shadow.camera.right=8;kl.shadow.camera.top=8;kl.shadow.camera.bottom=-8;kl.shadow.bias=-0.0005;kl.shadow.normalBias=0.02;scene.add(kl);
+  scene.add(new THREE.DirectionalLight('#ffccaa',2).position.set(-4,3,-3));
+  scene.add(new THREE.PointLight('#886644',4,10).position.set(0,-0.3,0));
+
+  // Ground
+  var gm=new THREE.Mesh(new THREE.CircleGeometry(5,64),new THREE.MeshStandardMaterial({color:'#d9c9a8',roughness:0.5}));
+  gm.rotation.x=-Math.PI/2;gm.position.y=-0.05;gm.receiveShadow=true;scene.add(gm);
+
+  // Rings
+  [2.2,2.4].forEach(function(r){
+    var tm=new THREE.Mesh(new THREE.TorusGeometry(r,0.025,12,80),new THREE.MeshStandardMaterial({color:'#b8860b',emissive:'#664400',emissiveIntensity:0.5,roughness:0.3}));
+    tm.rotation.x=-Math.PI/2;tm.position.y=0.01;scene.add(tm);
+  });
+
+  // Axis
+  var ax=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,5.5,32),new THREE.MeshStandardMaterial({color:'#b8860b',emissive:'#553300',emissiveIntensity:0.4,roughness:0.2,metalness:0.8}));
+  ax.position.y=2.75;ax.castShadow=true;scene.add(ax);
+
+  // Axis top
+  var sp=new THREE.Mesh(new THREE.SphereGeometry(0.15,32,32),new THREE.MeshStandardMaterial({color:'#d4a520',emissive:'#aa7700',emissiveIntensity:1,roughness:0.1,metalness:0.9}));
+  sp.position.y=5.55;scene.add(sp);
+
+  // Base
+  var bs=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.22,0.25,32),new THREE.MeshStandardMaterial({color:'#d4a520',emissive:'#886600',emissiveIntensity:0.6,roughness:0.1,metalness:0.9}));
+  bs.position.y=0.12;scene.add(bs);
+
+  // Tick marks every 20%
+  for(var i=20;i<=100;i+=20){
+    var y=i/100*5.5, t=new THREE.Mesh(new THREE.TorusGeometry(0.12,0.01,8,32),new THREE.MeshStandardMaterial({color:'#998877',roughness:0.4}));
+    t.position.y=y;t.rotation.x=Math.PI/2;scene.add(t);
+    var d=document.createElement('div');d.textContent=i+'%';d.style.cssText='color:#887766;font-size:9px;font-family:monospace';
+    var lo=new CSS2DObject(d);lo.position.set(0.25,y,0);scene.add(lo);
+  }
+
+  // Steps
+  var data=[{name:'生\n老生·小生·武生·红生',value:3091,pct:39.2,color:'#bc4a4a'},
+    {name:'旦\n正旦·花旦·老旦·武旦',value:1436,pct:18.2,color:'#d48085'},
+    {name:'净\n铜锤·架子·武花脸',value:1317,pct:16.7,color:'#c4a030'},
+    {name:'丑\n文丑·武丑·小丑',value:1093,pct:13.9,color:'#7aaa7a'},
+    {name:'其他\n外·末·杂·贴',value:959,pct:12.2,color:'#b0a090'}];
+  var total=7896,ir=0.3,_or=2.2,totalAngle=Math.PI*1.5,cy=0.25,stepGap=0.04;
+
+  data.forEach(function(d,i){
+    var h=(d.value/total)*5.5, sa=(i/data.length)*totalAngle, as=totalAngle/data.length*0.85;
+    var shape=new THREE.Shape(),seg=40;
+    for(var s=0;s<=seg;s++){var a=sa+(s/seg)*as,r=_or;s===0?shape.moveTo(Math.cos(a)*r,Math.sin(a)*r):shape.lineTo(Math.cos(a)*r,Math.sin(a)*r)}
+    for(var s=seg;s>=0;s--){var a=sa+(s/seg)*as,r=ir;shape.lineTo(Math.cos(a)*r,Math.sin(a)*r)}
+    shape.closePath();
+    var geo=new THREE.ExtrudeGeometry(shape,{steps:1,depth:h,bevelEnabled:true,bevelThickness:0.03,bevelSize:0.03,bevelSegments:3});
+    geo.rotateX(-Math.PI/2);geo.translate(0,cy,0);
+    var mat=new THREE.MeshStandardMaterial({color:d.color,roughness:0.35,metalness:0.2});
+    var mesh=new THREE.Mesh(geo,mat);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);
+
+    // Top highlight
+    var topY=cy+h,hs=new THREE.Shape();
+    for(var s=0;s<=seg;s++){var a=sa+(s/seg)*as,r=_or+0.01;s===0?hs.moveTo(Math.cos(a)*r,Math.sin(a)*r):hs.lineTo(Math.cos(a)*r,Math.sin(a)*r)}
+    for(var s=seg;s>=0;s--){var a=sa+(s/seg)*as,r=ir-0.01;hs.lineTo(Math.cos(a)*r,Math.sin(a)*r)}
+    hs.closePath();
+    var hg=new THREE.ShapeGeometry(hs);hg.rotateX(-Math.PI/2);hg.translate(0,topY+0.001,0);
+    scene.add(new THREE.Mesh(hg,new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:0.12})));
+
+    // Edge glow
+    var ep=[];for(var s=0;s<=seg;s++){var a=sa+(s/seg)*as;ep.push(new THREE.Vector3(Math.cos(a)*_or,topY+0.01,Math.sin(a)*_or))}
+    var ec=new THREE.CatmullRomCurve3(ep,true);
+    scene.add(new THREE.Mesh(new THREE.TubeGeometry(ec,48,0.012,8,true),new THREE.MeshBasicMaterial({color:'#ffdd88',transparent:true,opacity:0.4})));
+
+    // CSS2D Label
+    var ma=sa+as/2,lr=_or+0.6,lx=Math.cos(ma)*lr,lz=Math.sin(ma)*lr,ly=cy+h/2;
+    var dd=document.createElement('div');dd.textContent=d.name.split('\n')[0]+' '+d.pct+'%';
+    dd.style.cssText='color:#2c1000;font-size:12px;font-weight:bold;white-space:nowrap;text-shadow:0 0 0 3px rgba(255,255,255,0.9),0 0 0 5px rgba(255,255,255,0.6)';
+    var lo2=new CSS2DObject(dd);lo2.position.set(lx,ly,lz);scene.add(lo2);
+
+    // Connector
+    var cp=[new THREE.Vector3(Math.cos(ma)*(_or+0.1),ly,Math.sin(ma)*(_or+0.1)),new THREE.Vector3(lx,ly,lz)];
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(cp),new THREE.LineBasicMaterial({color:'#998877',transparent:true,opacity:0.45})));
+
+    cy+=h+stepGap;
+  });
+
+  // Particles
+  var pc=150,pg=new THREE.BufferGeometry(),pp=new Float32Array(pc*3);
+  for(var i=0;i<pc;i++){var a=Math.random()*Math.PI*2,r=1.5+Math.random()*4,hh=Math.random()*5.7;pp[i*3]=Math.cos(a)*r;pp[i*3+1]=hh;pp[i*3+2]=Math.sin(a)*r}
+  pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
+  var particles=new THREE.Points(pg,new THREE.PointsMaterial({color:'#b8860b',size:0.025,transparent:true,opacity:0.5,blending:THREE.AdditiveBlending}));
+  scene.add(particles);
+
+  // Animation
+  function anim(){_3dAnimId=requestAnimationFrame(anim);controls.update();particles.rotation.y+=0.0003;renderer.render(scene,camera);labelRenderer.render(scene,camera)}
+  anim();
+
+  // Handle window resize
+  window.addEventListener('resize',function(){
+    var w=container.clientWidth,h=container.clientHeight;if(w<=0||h<=0)return;
+    camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);labelRenderer.setSize(w,h);
+  });
+}
+
+function rOverview(){
+  var colors=['#8b1a1a','#c41e3a','#b8860b','#4a7c59','#3a5a7c','#c45a2a','#7a3050','#6b8eaa','#8fbc8f','#b87333','#d4853f','#9e5055','#4a6b4a','#3a5a5a','#8b6914','#c9a96e'];
+  var sd=D.source_distribution.filter(function(d){return d.name!=='未知'}).reverse();
+  var colors2=['#8b1a1a','#c41e3a','#b8860b','#4a7c59','#3a5a7c','#c45a2a','#7a3050','#6b8eaa','#8fbc8f','#b87333','#d4853f','#9e5055','#4a6b4a','#3a5a5a','#8b6914','#c9a96e'];
+  var animBase={animation:true,animationDuration:1200,animationEasing:'cubicOut',animationDelay:function(idx){return idx*60}};
+  var animPie={animation:true,animationType:'scale',animationEasing:'elasticOut',animationDelay:function(idx){return Math.random()*400}};
+
+  // Source bars
+  var c=mc('c-ov-src');if(c){c.setOption(Object.assign({},bo(),animBase,{grid:{left:'18%',right:'12%',top:8,bottom:5},xAxis:{type:'value',axisLabel:{show:false},splitLine:{show:false}},yAxis:{type:'category',data:sd.map(function(d){return d.name}),axisLabel:{color:'#2c1810',fontSize:11,fontWeight:'bold'},axisLine:{show:false},axisTick:{show:false},inverse:true},series:[{type:'bar',data:sd.map(function(d,i){return{value:d.value,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:colors[i%colors.length]},{offset:1,color:colors[(i+1)%colors.length]}]),borderRadius:[0,8,8,0],opacity:0.85}}}),barWidth:22,label:{show:true,position:'right',color:'#2c1810',fontSize:12,fontWeight:'bold',formatter:'{c} 部'},animationDelay:function(idx){return idx*80}}]}))}
+
+  // Category pie
+  var c2=mc('c-ov-sun');if(c2){var ctData=D.sunburst_data.map(function(d){return{name:d.name,value:d.children.reduce(function(s,c){return s+c.value},0)}});c2.setOption(Object.assign({},bo(),animPie,{legend:{orient:'vertical',right:'18%',top:'center',textStyle:{color:'#2c1810',fontSize:11},itemWidth:12,itemHeight:12},tooltip:Object.assign({},bo().tooltip,{trigger:'item',formatter:'{b}: {c} 部 ({d}%)'}),series:[{type:'pie',radius:['30%','65%'],center:['38%','50%'],roseType:'area',data:ctData,color:['#8b1a1a','#b8860b','#4a7c59','#3a5a7c','#c45a2a','#7a3050','#6b8eaa','#8fbc8f'],itemStyle:{borderColor:'#f5efe0',borderWidth:3,borderRadius:2},label:{color:'#2c1810',fontSize:11,fontWeight:'bold',formatter:'{b}\n{d}%'},animationType:'scale',animationEasing:'elasticOut',animationDelay:function(idx){return idx*120}}]}))}
+
+  // Wordcloud
+  var c4=mc('c-ov-wc');if(c4){c4.setOption(Object.assign({},bo(),{tooltip:{show:false},series:[{type:'wordCloud',shape:'circle',left:'center',top:'center',width:'95%',height:'95%',sizeRange:[20,80],rotationRange:[-15,15],rotationStep:25,gridSize:6,drawOutOfBound:false,layoutAnimation:true,textStyle:{fontFamily:"'Noto Serif SC','STSong',serif",fontWeight:'bold',color:function(){return ['#8b1a1a','#b8860b','#2c5a2c','#3a4a7c','#c41e3a','#8b6914','#c45a2a','#4a3050'][Math.floor(Math.random()*8)]}},emphasis:{focus:'none',textStyle:{fontWeight:'bold',fontSize:60,color:'#c41e3a',shadowBlur:12,shadowColor:'rgba(0,0,0,0.4)',shadowOffsetX:2,shadowOffsetY:2}},data:D.wordcloud.slice(0,120)}]}))}
+
+  // Length pie
+  var c5=mc('c-ov-len');if(c5){c5.setOption(Object.assign({},bo(),animPie,{tooltip:Object.assign({},bo().tooltip,{trigger:'item',formatter:'{b}: {c} 个 ({d}%)'}),legend:{show:true,orient:'horizontal',left:'15%',top:5,itemWidth:14,itemHeight:10,textStyle:{color:'#5c3a28',fontSize:10}},series:[{type:'pie',radius:['40%','72%'],center:['36%','58%'],data:D.length_distribution.map(function(d){return{name:d.range,value:d.count}}),color:P2,itemStyle:{borderRadius:4,borderColor:'#fdf8f0',borderWidth:2},label:{color:'#5c3a28',formatter:'{b}\n{c}个',fontSize:10},animationType:'scale',animationEasing:'elasticOut',animationDelay:function(idx){return idx*150}}]}))}
+
+  // Scene bars - premium style
+  var c6=mc('c-ov-scn');if(c6){c6.setOption(Object.assign({},bo(),animBase,{grid:{left:'10%',right:'5%',top:15,bottom:35},xAxis:{type:'category',data:D.scene_distribution.map(function(d){return d.scenes}),axisLabel:{color:'#2c1810',fontSize:9,rotate:45,interval:4,fontWeight:'bold'},axisLine:{lineStyle:{color:'rgba(139,115,85,0.3)'}}},yAxis:{type:'value',axisLabel:{color:'#2c1810',fontWeight:'bold'},splitLine:{lineStyle:{color:'rgba(139,115,85,0.06)'}}},series:[{type:'bar',data:D.scene_distribution.map(function(d){return d.count}),itemStyle:{color:function(p){var cs=[['#a0526a','#c4708a'],['#4a7c59','#6ba36b'],['#b8860b','#d4a520'],['#3a5a7c','#5a7a9c'],['#c45a2a','#e8785a'],['#7a3050','#a05070'],['#8fbc8f','#a0cca0'],['#6b8eaa','#8baeca']];var c=cs[p.dataIndex%cs.length];return new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:c[0]},{offset:1,color:c[1]}])},borderRadius:[6,6,0,0],shadowBlur:4,shadowColor:'rgba(0,0,0,0.1)',shadowOffsetX:1,shadowOffsetY:1},barWidth:'55%',barCategoryGap:'35%',emphasis:{itemStyle:{shadowBlur:8,shadowColor:'rgba(0,0,0,0.2)'},scale:true},animationDelay:function(idx){return idx*40}}]}))}
+
+  // Char bars - premium style
+  var c7=mc('c-ov-chd');if(c7){c7.setOption(Object.assign({},bo(),animBase,{grid:{left:'10%',right:'5%',top:15,bottom:35},xAxis:{type:'category',data:D.char_distribution.map(function(d){return d.chars}),axisLabel:{color:'#2c1810',fontSize:9,rotate:45,interval:4,fontWeight:'bold'},axisLine:{lineStyle:{color:'rgba(139,115,85,0.3)'}}},yAxis:{type:'value',axisLabel:{color:'#2c1810',fontWeight:'bold'},splitLine:{lineStyle:{color:'rgba(139,115,85,0.06)'}}},series:[{type:'bar',data:D.char_distribution.map(function(d){return d.count}),itemStyle:{color:function(p){var cs=[['#b8860b','#d4a520'],['#c45a2a','#e8785a'],['#4a7c59','#6ba36b'],['#3a5a7c','#5a7a9c'],['#a0526a','#c4708a'],['#8b6914','#c9a030'],['#7a3050','#a05070'],['#6b8eaa','#8baeca']];var c=cs[p.dataIndex%cs.length];return new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:c[0]},{offset:1,color:c[1]}])},borderRadius:[6,6,0,0],shadowBlur:4,shadowColor:'rgba(0,0,0,0.1)',shadowOffsetX:1,shadowOffsetY:1},barWidth:'55%',barCategoryGap:'35%',emphasis:{itemStyle:{shadowBlur:8,shadowColor:'rgba(0,0,0,0.2)'},scale:true},animationDelay:function(idx){return idx*40}}]}))}
+}
+
+function rRole(){
+  // Rose
+  var c=mc('c-rl-rose');if(!c)return;
+  var roleInfo={'生':'男性角色统称，是京剧中最主要的行当之一。\n· 老生：中老年男性，戴髯口，唱念做打并重\n· 小生：青年男性，嗓音清脆明亮\n· 武生：擅长武艺的男性角色\n· 红生：专指勾红脸的关羽等角色',
+    '旦':'女性角色统称，京剧四大行当之一。\n· 正旦（青衣）：端庄稳重的青年女性\n· 花旦：活泼开朗的青年女性\n· 武旦：精通武艺的女性角色\n· 老旦：老年女性角色\n· 彩旦：滑稽诙谐的女性角色',
+    '净':'俗称花脸，以面部化妆勾勒图案为特征。\n· 铜锤花脸：侧重唱功，嗓音洪亮\n· 架子花脸：做工见长，身段丰富\n· 武花脸：以武打翻扑为主',
+    '丑':'喜剧角色，鼻梁上抹白粉为标志。\n· 文丑：诙谐幽默的文职角色\n· 武丑：身手矫健的武打丑角\n· 方巾丑：戴方巾的文人丑角\n· 袍带丑：穿官服的官员丑角',
+    '其他':'包括外、末、杂、贴等辅助行当。\n· 外：老年男性配角\n· 末：中年男性配角\n· 杂：群众角色\n· 贴：次要旦角'};
+  var roleImg={'生':'role_sheng.png','旦':'role_dan.png','净':'role_jing.png','丑':'role_chou.png','其他':'role_other.png'};
+  c.setOption(Object.assign({},bo(),{legend:Object.assign({},bo().legend,{orient:'vertical',right:8,top:'center'}),tooltip:Object.assign({},bo().tooltip,{trigger:'item',formatter:'{b}: {c} ({d}%)<br/><small>点击查看详细介绍</small>'}),series:[{type:'pie',radius:['28%','75%'],center:['42%','50%'],roseType:'radius',data:D.role_category_distribution,color:P2,itemStyle:{borderRadius:4,borderColor:'#fdf8f0',borderWidth:2,cursor:'pointer'},label:{color:'#5c3a28',formatter:'{b}\n{c}次',fontSize:12}}]}));
+  c.off('click');c.on('click',function(p){if(p.name&&roleInfo[p.name]){$('mc').innerHTML='<button class=\"mcl\" onclick=\"clMo()\">✕</button><div class=\"mt\">'+p.name+' · 行当详解</div><div style=\"display:flex;gap:20px\"><div style=\"flex:1\"><div class=\"ms\"><p style=\"white-space:pre-line;line-height:2\">'+roleInfo[p.name]+'</p></div><div class=\"ms\"><h4>数据统计</h4><p>出现次数：<b>'+p.value+'</b> 次（占比 '+p.percent+'%）</p></div></div><div style=\"width:220px;flex-shrink:0\"><img src=\"'+roleImg[p.name]+'\" style=\"width:100%;border-radius:6px;border:1px solid var(--border)\" onerror=\"this.style.display=\'none\'\" alt=\"'+p.name+'\"></div></div>';$('mo').classList.add('show')}});
+
+  // Type bar (horizontal)
+  var c2=mc('c-rl-bar');if(!c2)return;
+  var rtd=D.role_type_distribution.reverse();
+  c2.setOption(Object.assign({},bo(),{grid:{left:'15%',right:'10%',top:5,bottom:5},xAxis:{type:'value',axisLabel:{color:'#5c3a28'},splitLine:{lineStyle:{color:'rgba(139,115,85,0.1)'}}},yAxis:{type:'category',data:rtd.map(function(d){return d.name}),axisLabel:{color:'#5c3a28',fontSize:10},axisLine:{lineStyle:{color:'rgba(139,115,85,0.3)'}}},series:[{type:'bar',data:rtd.map(function(d,i){return{value:d.value,itemStyle:{color:pc(i,P2)}}}),barWidth:'60%',label:{show:true,position:'right',color:'#5c3a28',fontSize:10}}]}));
+
+  // Heatmap
+  var c3=mc('c-rl-heat');if(!c3)return;
+  var dr=D.dir_role_cross;
+  var mergedDirs=[],mergedMap={};
+  for(var i=0;i<dr.directories.length;i++){var d=dr.directories[i];if(!mergedMap[d]){mergedMap[d]=dr.data[i].slice();mergedDirs.push(d)}else{for(var j=0;j<dr.data[i].length;j++)mergedMap[d][j]+=dr.data[i][j]}}
+  var md=mergedDirs.map(function(d){return mergedMap[d]});
+  var hd=[];for(var i=0;i<md.length;i++){var rowSum=0;for(var j=0;j<md[i].length;j++)rowSum+=md[i][j];for(var j=0;j<md[i].length;j++){var rp=(md[i][j]/rowSum*100).toFixed(1);hd.push({value:[j,i,rp],pct:rp});}}
+  c3.setOption(Object.assign({},bo(),{grid:{left:'15%',right:'5%',top:8,bottom:'18%'},xAxis:{type:'category',data:dr.categories,axisLabel:{color:'#5c3a28',fontSize:13},axisLine:{lineStyle:{color:'rgba(139,115,85,0.3)'}}},yAxis:{type:'category',data:mergedDirs,axisLabel:{color:'#5c3a28',fontSize:11,fontWeight:'bold'},axisLine:{lineStyle:{color:'rgba(139,115,85,0.3)'}}},visualMap:{min:0,max:50,calculable:true,orient:'horizontal',left:'center',bottom:0,textStyle:{color:'#5c3a28'},inRange:{color:['#fdf8f0','#f5e0c0','#f0c870','#d49030','#c44020']}},series:[{type:'heatmap',data:hd,label:{show:true,color:'#5c3a28',fontSize:10,formatter:function(p){return p.data.pct+'%'}},emphasis:{itemStyle:{shadowBlur:10,shadowColor:'rgba(0,0,0,0.2)'}}}]}));
+
+}
+
+function rNetwork(){
+  var net=D.character_network;
+  // Top chars
+  var c=mc('c-nw-bar');if(!c)return;
+  var t15=net.nodes.slice(0,15).reverse();
+  var allData=t15.map(function(d,i){return{value:d.count,itemStyle:{color:pc(i,P2)}}});
+  c.setOption(Object.assign({},bo(),{grid:{left:'15%',right:'10%',top:8,bottom:5},xAxis:{type:'value',axisLabel:{color:'#5c3a28'},splitLine:{lineStyle:{color:'rgba(139,115,85,0.1)'}}},yAxis:{type:'category',data:t15.map(function(n){return n.name}),axisLabel:{color:'#5c3a28',fontSize:13,fontWeight:'bold'},axisLine:{lineStyle:{color:'rgba(139,115,85,0.3)'}}},series:[{type:'bar',data:allData,barWidth:14,label:{show:true,position:'right',color:'#5c3a28',fontSize:12,fontWeight:'bold'}}]}));
+  // Animate bars appearing one by one
+  var curVals=t15.map(function(){return 0});
+  c.setOption({series:[{data:allData.map(function(d,i){return{value:0,itemStyle:d.itemStyle}})}]});
+  var bs=0;
+  var tmr=setInterval(function(){
+    if(bs>=curVals.length){clearInterval(tmr);return}
+    curVals[bs]=allData[bs].value;bs++;
+    c.setOption({series:[{data:allData.map(function(d,i){return{value:curVals[i],itemStyle:d.itemStyle}})}]});
+  },120);
+
+  // Graph
+  window._netNodes=net.nodes;window._netEdges=net.edges;
+  rNetGraph(net.nodes,net.edges);
+}
+
+var BP3=['#c41e3a','#d4853f','#4a7c59','#3a7abc','#b8860b','#e8594a','#5b9e5b','#4a90d9','#c9a96e','#db5a42'];
+function rNetGraph(nodes,edges){
+  var c=mc('c-nw-graph');if(!c)return;
+  $('nw-count').textContent=nodes.length+'个节点 / '+edges.length+'条边';
+  var allNodes=nodes.map(function(n,i){return{name:n.name,count:n.count,symbolSize:Math.max(10,Math.min(50,n.count*2)),itemStyle:{color:BP3[i%BP3.length],shadowBlur:6,shadowColor:'rgba(0,0,0,0.2)'}}});
+  var allEdges=edges.map(function(e){return{source:e.source,target:e.target,value:e.weight,lineStyle:{width:Math.max(0.5,Math.min(3,e.weight*0.4)),opacity:Math.max(0.2,Math.min(0.6,e.weight*0.06)),color:'rgba(139,115,85,0.4)'},label:{show:e.weight>=2,formatter:'{c}',fontSize:9,color:'#8b1a1a',fontWeight:'bold'}}});
+  var baseOpt={type:'graph',layout:'circular',circular:{rotateLabel:true},roam:true,draggable:true,label:{show:true,fontSize:10,color:'#1a0a00',fontWeight:'bold',formatter:function(p){return p.data.count>=8?p.name:''}},emphasis:{focus:'adjacency',label:{fontSize:15,fontWeight:'bold',color:'#8b1a1a'},itemStyle:{borderColor:'#c41e3a',borderWidth:3,shadowBlur:12}},lineStyle:{color:'rgba(139,115,85,0.25)',curveness:0.15}};
+  // Show empty first
+  c.setOption(Object.assign({},bo(),{tooltip:Object.assign({},bo().tooltip,{trigger:'item',formatter:function(p){if(p.dataType==='edge')return p.data.source+' ↔ '+p.data.target+'<br/>共现次数: '+p.data.value+' 次';return p.name+'<br/>出现于 '+p.data.count+' 个剧本'}}),series:[Object.assign({},baseOpt,{data:[],edges:[]})]}),true);
+  // Animate nodes appearing one by one
+  var curNodes=[],curEdges=[],added=new Set(),step=0,total=allNodes.length;
+  var timer=setInterval(function(){
+    if(step<total){
+      var n=allNodes[step];curNodes.push(n);added.add(n.name);
+      // Add edges where both ends are added
+      curEdges=allEdges.filter(function(e){return added.has(e.source)&&added.has(e.target)});
+      c.setOption(Object.assign({},bo(),{tooltip:Object.assign({},bo().tooltip,{trigger:'item',formatter:function(p){if(p.dataType==='edge')return p.data.source+' ↔ '+p.data.target+'<br/>共现次数: '+p.data.value+' 次';return p.name+'<br/>出现于 '+p.data.count+' 个剧本'}}),animationDurationUpdate:500,animationEasingUpdate:'linear',series:[Object.assign({},baseOpt,{data:curNodes.slice(),edges:curEdges.slice()})]}),true);
+      step++;
+    }else{clearInterval(timer)}
+  },80);
+  // Click handler for character info
+  var charInfo={'刘备':'蜀汉开国皇帝，仁德之君。桃园三结义之一。','诸葛亮':'字孔明，号卧龙。蜀汉丞相，智慧的化身。','关羽':'字云长，蜀汉名将。忠义千秋，武圣关公。','曹操':'字孟德，东汉丞相。一代枭雄，文武双全。','张飞':'字翼德，蜀汉名将。勇猛过人，万人敌。','赵云':'字子龙，蜀汉名将。常山赵子龙，一身是胆。','赵匡胤':'宋太祖，陈桥兵变黄袍加身。','鲁肃':'字子敬，东吴谋士。忠厚长者。','杨延昭':'杨家将第六子，抗辽名将。','周瑜':'字公瑾，东吴大都督。雄姿英发。','程咬金':'唐朝开国名将，三板斧闻名。','包拯':'北宋名臣，铁面无私包青天。','王宝钏':'苦守寒窑十八载，忠贞不渝。','秦琼':'字叔宝，唐朝名将。门神之一。','孙悟空':'齐天大圣，神通广大。','伍员':'字子胥，春秋名将。一夜白头过昭关。','李世民':'唐太宗，贞观之治开创者。','佘太君':'杨家将女将之首，百岁挂帅。','薛平贵':'从军西征，终得王位。','赵德芳':'八贤王，宋太祖之子。','尉迟恭':'字敬德，唐朝名将。门神之一。'}
+  c.off('click');c.on('click',function(p){if(p.dataType==='node'&&p.name){var info=charInfo[p.name]||'京剧经典角色，出现于'+p.data.count+'个剧本中。';var bc=BP3[Math.floor(Math.random()*BP3.length)];$('mc').innerHTML='<button class=\"mcl\" onclick=\"clMo()\">✕</button><div style=\"display:flex;align-items:center;gap:15px;margin-bottom:16px\"><div style=\"width:48px;height:48px;border-radius:50%;background:'+bc+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:bold;box-shadow:0 3px 8px rgba(0,0,0,0.15);flex-shrink:0\">'+p.name[0]+'</div><div><div style=\"font-family:var(--font-serif);font-size:22px;font-weight:700;color:#2c1810\">'+p.name+'</div><div style=\"font-size:11px;color:#8c6b48;margin-top:2px\">出现于 <b>'+p.data.count+'</b> 个剧本</div></div></div><div style=\"padding:14px 16px;background:rgba(246,240,223,0.6);border-radius:4px;border-left:3px solid '+bc+';font-size:13px;line-height:1.9;color:#3d3028\">'+info+'</div>';$('mo').classList.add('show')}});
+}
+
+function upNetFilter(){
+  var q=$('nw-filt').value.toLowerCase();
+  var ns=window._netNodes,es=window._netEdges;
+  if(!q){rNetGraph(ns,es);return}
+  var fn=ns.filter(function(n){return n.name.toLowerCase().indexOf(q)>=0});
+  var fns=new Set(fn.map(function(n){return n.name}));
+  var fe=es.filter(function(e){return fns.has(e.source)||fns.has(e.target)});
+  var allN=new Set();fe.forEach(function(e){allN.add(e.source);allN.add(e.target)});
+  var nn=ns.filter(function(n){return allN.has(n.name)});
+  rNetGraph(nn,fe);
+}
+
+function rTheme(){
+  // Theme bar
+  var c=mc('c-th-bar');if(c){c.dispose()}
+  var thIntro={
+    '战争军事':'围绕战争、军事行动展开的剧目。涵盖三国征战、隋唐演义、抗辽抗金等历史战争题材，展现将领智谋与战场厮杀，是京剧中最常见的主题类型。',
+    '家庭伦理':'以家庭关系、伦理道德为核心的剧目。涉及孝道、教子、夫妻关系、家族兴衰等内容，反映传统社会的家庭观念与道德准则。',
+    '宫廷权谋':'描绘宫廷政治斗争与权力更迭的剧目。包括帝王将相的权术较量、篡位夺权、忠奸斗争等情节，展现庙堂之上的风云变幻。',
+    '官场公案':'以审案断案、伸冤昭雪为主线的剧目。包拯、海瑞等清官形象深入人心，体现公平正义的追求，展现古代司法与官场生态。',
+    '历史典故':'取材于中国历史经典故事与传说的剧目。从春秋战国到明清时期，将历史事件与人物传奇搬上舞台，寓教于乐，传承历史文化。',
+    '神怪奇幻':'涉及神仙鬼怪、梦幻变化的剧目。西游记、白蛇传等神话传说，展现丰富的想象力与浪漫主义色彩，充满奇幻色彩。',
+    '爱情婚姻':'以男女情感、婚姻纠葛为主题的剧目。从才子佳人到悲欢离合，展现传统社会中的爱情观念与婚姻制度的复杂面貌。',
+    '才子佳人':'围绕文人雅士与闺秀佳人的故事。包括科举赶考、诗书琴棋、红娘牵线等元素，充满文雅气息与浪漫情怀。',
+    '民间生活':'反映普通百姓日常生活的剧目。涉及农耕、渔樵、市井生活等场景，贴近民众，体现民间智慧与生活趣味。',
+    '忠义爱国':'弘扬忠君爱国精神的剧目。杨家将、岳飞等忠臣良将的故事，体现中华民族忠义报国的传统美德。',
+    '侠义英雄':'展现侠客义士惩恶扬善的剧目。水浒英雄、游侠剑客等形象，体现除暴安良、打抱不平的侠义精神。',
+    '因果报应':'以善恶报应、因果轮回为主题的剧目。通过故事展现善有善报、恶有恶报的天理循环，具有教化劝善的功能。',
+    '其他':'不属于以上任何类型的剧目，主题较为综合或独特。'
+  };
+  var thHtml='<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px;line-height:1.8;color:#2c1810\">';
+  D.theme_distribution.slice().sort(function(a,b){return b.value-a.value}).forEach(function(t){
+    var desc=thIntro[t.name]||'京剧经典主题类型。';
+    thHtml+='<div style=\"padding:10px 14px;background:rgba(246,240,223,0.5);border-left:3px solid #8b1a1a;border-radius:2px\"><b style=\"font-size:14px;color:#5c2018\">'+t.name+'</b> <span style=\"color:#8c6b48;font-size:11px\">'+t.value+'部</span><p style=\"margin-top:4px;color:#3d3028\">'+desc+'</p></div>';
+  });
+  thHtml+='</div>';
+  var el=$('c-th-bar');el.innerHTML=thHtml;el.style.overflowY='auto';el.style.maxHeight='420px';
+
+  // Theme combo
+  var c2=mc('c-th-cmb');if(!c2)return;
+  var tcm=D.theme_combo_distribution.slice(0,12);
+  c2.setOption(Object.assign({},bo(),{tooltip:Object.assign({},bo().tooltip,{trigger:'item',formatter:'{b}: {c} 个 ({d}%)'}),legend:{orient:'vertical',right:5,top:'center',textStyle:{color:'#2c1810',fontSize:10},itemWidth:10,itemHeight:10},series:[{type:'pie',radius:['35%','70%'],center:['38%','50%'],data:tcm,color:['#8b1a1a','#b8860b','#4a7c59','#3a5a7c','#c45a2a','#7a3050','#8fbc8f','#6b8eaa','#b87333','#d4853f','#9e5055','#4a6b4a'],itemStyle:{borderColor:'#f3edd9',borderWidth:2,borderRadius:2},label:{color:'#2c1810',fontSize:10,formatter:'{b}\n{d}%',overflow:'truncate',width:80},emphasis:{scaleSize:6,label:{fontSize:13,fontWeight:'bold'}}}]}));
+
+  // Theme heatmap
+  var c3=mc('c-th-heat');if(!c3)return;
+  if(!D.source_theme_cross){c3.setOption(Object.assign({},bo(),{title:{text:'暂无数据',left:'center',top:'center',textStyle:{color:'#8b7355'}}}));return}
+  var st=D.source_theme_cross;
+  var ls=['#8b1a1a','#b8860b','#4a7c59','#3a5a7c','#c45a2a','#7a3050','#8fbc8f','#6b8eaa','#b87333','#d4853f','#c41e3a','#4a6b4a'];
+  var seriesData=[];
+  for(var i=0;i<Math.min(st.sources.length,12);i++){
+    if(st.sources[i]==='未知')continue;
+    seriesData.push({name:st.sources[i],type:'bar',data:st.data[i],barGap:'20%',itemStyle:{color:ls[(seriesData.length)%ls.length],borderRadius:[4,4,0,0]},emphasis:{focus:'series'}});
+  }
+  var fullOption=Object.assign({},bo(),{animationDuration:800,animationEasing:'elasticOut',tooltip:{trigger:'axis'},legend:{type:'scroll',bottom:0,textStyle:{fontSize:10,color:'#2c1810'},pageTextStyle:{color:'#2c1810'}},grid:{left:'5%',right:'8%',top:10,bottom:60},xAxis:{type:'category',data:st.themes,axisLabel:{color:'#2c1810',fontSize:10,rotate:30,fontWeight:'bold'},axisLine:{lineStyle:{color:'rgba(74,56,39,0.3)'}}},yAxis:{type:'value',name:'剧本数',nameTextStyle:{color:'#2c1810',fontWeight:'bold'},axisLabel:{color:'#2c1810',fontWeight:'bold'},splitLine:{lineStyle:{color:'rgba(74,56,39,0.08)'}}},series:seriesData});
+  c3.setOption(fullOption,true);
+}
+
+function rNarrativeRemoved(){
+  // Scene dist
+  var c=mc('c-nr-scn');if(!c)return;
+  c.setOption(Object.assign({},bo(),{grid:{left:'10%',right:'5%',top:12,bottom:50},xAxis:{type:'category',data:D.scene_distribution.map(function(d){return d.scenes}),axisLabel:{color:'#5c3a28',fontSize:9,rotate:45,interval:5},axisLine:{lineStyle:{color:'rgba(139,115,85,0.3)'}}},yAxis:{type:'value',axisLabel:{color:'#5c3a28'},splitLine:{lineStyle:{color:'rgba(139,115,85,0.1)'}}},series:[{type:'bar',data:D.scene_distribution.map(function(d){return d.count}),itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#4a7c59'},{offset:1,color:'#2d5a3a'}]),borderRadius:[3,3,0,0]},barWidth:'70%'}]}));
+
+  // Length pie
+  var c2=mc('c-nr-len');if(!c2)return;
+  var nrLenData=D.length_distribution.map(function(d){return{name:d.range,value:d.count}});
+  c2.setOption(Object.assign({},bo(),{tooltip:Object.assign({},bo().tooltip,{trigger:'item',formatter:'{b}: {c} 个 ({d}%)'}),series:[{type:'pie',radius:['38%','72%'],data:nrLenData,color:['#4a7c59','#8fbc8f','#d4a574','#b8860b','#c41e3a','#8b7355'],itemStyle:{borderRadius:4,borderColor:'#fdf8f0',borderWidth:2},label:{color:'#5c3a28',formatter:'{b}\n{c}个',fontSize:11}}]}));
+
+  // Style rose
+  var c3=mc('c-nr-rose');if(!c3)return;
+  c3.setOption(Object.assign({},bo(),{legend:Object.assign({},bo().legend,{orient:'vertical',right:8,top:'center'}),series:[{type:'pie',radius:[25,140],center:['40%','50%'],roseType:'area',data:D.style_distribution,color:P2,itemStyle:{borderRadius:3},label:{color:'#5c3a28',fontSize:10}}]}));
+
+  // Char vs scene
+  var c4=mc('c-nr-cs');if(!c4)return;
+  var ac=D.overview.avg_characters,asc=D.overview.avg_scenes,pr=Math.round(ac*asc);
+  c4.setOption(Object.assign({},bo(),{grid:{left:'18%',right:'5%',top:35,bottom:20},xAxis:{type:'category',data:['平均角色数','平均场次数','角色×场次'],axisLabel:{color:'#5c3a28',fontSize:13,interval:0},axisLine:{lineStyle:{color:'rgba(139,115,85,0.3)'}}},yAxis:{type:'value',axisLabel:{color:'#5c3a28'},splitLine:{lineStyle:{color:'rgba(139,115,85,0.1)'}}},series:[{type:'bar',data:[{value:ac,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#c41e3a'},{offset:1,color:'#8b1a1a'}]),borderRadius:[6,6,0,0]}},{value:asc,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#b8860b'},{offset:1,color:'#8b6914'}]),borderRadius:[6,6,0,0]}},{value:pr,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'#4a7c59'},{offset:1,color:'#2d5a3a'}]),borderRadius:[6,6,0,0]}}],barWidth:'45%',label:{show:true,position:'top',color:'#5c3a28',fontSize:14,fontWeight:'bold'}}]}));
+}
+
+// ======== SWITCH ========
+function sw(name){
+  as=name;
+  window.scrollTo(0,0);
+  document.querySelectorAll('#nav button').forEach(function(b){b.classList.remove('active')});
+  var btn=document.querySelector('#nav button[data-s="'+name+'"]');if(btn)btn.classList.add('active');
+  document.querySelectorAll('.sec').forEach(function(s){s.classList.remove('active')});
+  var sec=$('s-'+name);if(sec)sec.classList.add('active');
+  setTimeout(function(){
+    if(!secR[name]){
+      if(name==='intro')rIntro();
+      else if(name==='overview'){rOverview();setTimeout(function(){Object.keys(ch).forEach(function(k){try{ch[k].resize()}catch(e){}})},400)}
+      else if(name==='role')rRole();
+      else if(name==='network')rNetwork();
+      else if(name==='theme')rTheme();
+            else if(name==='compare')iComp();
+      secR[name]=true;
+    }
+    Object.keys(ch).forEach(function(k){try{ch[k].resize()}catch(e){}});
+  },200);
+}
+
+// ======== SEARCH ========
+function doS(q){
+  var d=$('sr');if(!q||q.length<1){d.classList.remove('show');return}
+  var ql=q.toLowerCase(),res=[];
+  if(oi&&oi.length>0)res=oi.filter(function(o){return o.title.toLowerCase().indexOf(ql)>=0||o.aliases.toLowerCase().indexOf(ql)>=0||o.source.toLowerCase().indexOf(ql)>=0||(o.themes||[]).some(function(t){return t.toLowerCase().indexOf(ql)>=0})||(o.characters||[]).some(function(c){return c.toLowerCase().indexOf(ql)>=0})}).slice(0,25);
+  if(res.length===0){d.innerHTML='<div style="padding:16px;color:var(--ink4);text-align:center">未找到匹配结果</div>'}else{d.innerHTML=res.map(function(r){var cs=(r.characters||[]).slice(0,8).join(' · ');return'<div class="sri" onclick="shOp('+r.id+')"><div class="rt">📜 '+r.title+' '+(r.aliases?'<span style="color:var(--ink4)">（'+r.aliases+'）</span>':'')+'</div><div class="rm">来源: '+r.source+' | 场次: '+r.scene_count+' | 角色: '+r.character_count+' | 主题: '+(r.themes||[]).join(', ')+'</div><div class="rc">'+cs+'</div></div>'}).join('')}
+  d.classList.add('show');
+}
+
+function shOp(id){$('sr').classList.remove('show');var o=(oi||[]).find(function(x){return x.id===id});if(!o)return;
+  $('mc').innerHTML='<button class="mcl" onclick="clMo()">✕</button><div class="mt">'+o.title+' '+(o.aliases?'<span style="font-size:14px;color:var(--ink4)">（'+o.aliases+'）</span>':'')+'</div><div class="ms"><h4>📋 基本信息</h4><p>来源：'+o.source+' | 目录：'+o.directory+' | 分类：'+(o.dir_category||'未知')+'</p><p>场次：'+o.scene_count+' | 角色：'+o.character_count+' | 篇幅：'+(o.body_length||0).toLocaleString()+' 字符</p></div><div class="ms"><h4>🏷️ 主题标签</h4><div class="mtags">'+(o.themes||[]).map(function(t){return'<span class="mtag">'+t+'</span>'}).join('')+'</div></div><div class="ms"><h4>🎭 角色列表</h4><div class="mtags">'+(o.characters||[]).slice(0,20).map(function(c){return'<span class="mtag">'+c+'</span>'}).join('')+'</div></div><div class="ms"><h4>📖 情节摘要</h4><p>'+(o.plot_brief||'暂无摘要')+'</p></div>';
+  $('mo').classList.add('show');
+}
+function clMo(){$('mo').classList.remove('show')}
+
+// ======== COMPARE ========
+var csel=[];
+function iComp(){}
+function showCSug(n){
+  var d=$('cr'+n);if(!d||!oi||!oi.length)return;
+  var t='';for(var i=0;i<Math.min(8,oi.length);i++)t+='<div class="sri" onclick="ac('+oi[i].id+')" style="font-size:13px">📜 '+oi[i].title+' <span style="color:var(--ink4);font-size:11px">'+oi[i].source+'</span></div>';
+  d.innerHTML=t||'<div style="padding:12px;color:var(--ink4);text-align:center">数据加载中...</div>';d.style.display='block';
+}
+function hideCSug(n){var d=$('cr'+n);if(d)d.style.display='none';}
+function sc(n,q){
+  var d=$('cr'+n);if(!d)return;
+  if(!q||q.length<2){d.innerHTML='';showCSug(n);return}
+  var ql=q.toLowerCase(),res=(oi||[]).filter(function(o){return o.title.toLowerCase().indexOf(ql)>=0||o.aliases.toLowerCase().indexOf(ql)>=0}).slice(0,15);
+  d.innerHTML=res.length?res.map(function(r){return'<div class="sri" onclick="ac('+r.id+')" style="font-size:13px"><div style="font-weight:600;color:var(--ink2)">'+r.title+'</div><div style="font-size:11px;color:var(--ink4)">'+r.source+' | 场次:'+r.scene_count+' | 角色:'+r.character_count+'</div></div>'}).join(''):'<div style="padding:12px;color:var(--ink4);text-align:center">无匹配结果</div>';
+  d.style.display='block';
+}
+function ac(id){
+  if(csel.length>=6){alert('最多选择6个剧本');return}if(csel.find(function(o){return o.id===id}))return;
+  var o=(oi||[]).find(function(x){return x.id===id});if(!o)return;csel.push(o);uCsel();uCc()
+}
+function rmC(id){csel=csel.filter(function(o){return o.id!==id});uCsel();uCc()}
+function uCsel(){$('csel').innerHTML=csel.map(function(o){return'<span style="padding:7px 16px;background:rgba(184,134,11,0.08);border:1px solid rgba(184,134,11,0.3);border-radius:22px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink2);font-weight:500">'+o.title+'<span style="cursor:pointer;color:var(--red);font-weight:bold;font-size:16px" onclick="rmC('+o.id+')">✕</span></span>';}).join('')}
+function uCc(){
+  var a=$('cca');if(csel.length<2){a.innerHTML='<div style="color:var(--ink4);padding:28px;text-align:center">请选择至少2个剧本进行多维对比分析</div>';return}
+  var cid='c-cmp';a.innerHTML='<div class="cpnl fw"><div class="ptitle">剧本多维对比雷达图</div><div class="psub">场次数 · 角色数 · 剧本长度 · 场均字数 · 主题数</div><div class="ct h500" id="'+cid+'"></div></div>';
+  setTimeout(function(){
+    if(ch[cid])try{ch[cid].dispose()}catch(e){}
+    var cc=echarts.init($(cid));ch[cid]=cc;
+    var mv={sc:Math.max.apply(null,csel.map(function(o){return o.scene_count||0})),cc:Math.max.apply(null,csel.map(function(o){return o.character_count||0})),bl:Math.max.apply(null,csel.map(function(o){return o.body_length||0})),ds:Math.max.apply(null,csel.map(function(o){return Math.round((o.body_length||0)/Math.max(1,o.scene_count||1))})),th:Math.max(1,Math.max.apply(null,csel.map(function(o){return(o.themes||[]).length})))};
+    var rd=csel.map(function(o,i){return{name:o.title,value:[o.scene_count||0,o.character_count||0,o.body_length||0,Math.round((o.body_length||0)/Math.max(1,o.scene_count||1)),(o.themes||[]).length],areaStyle:{opacity:0.06},lineStyle:{width:3},itemStyle:{color:pc(i,P2)}}});
+    var o2={legend:{data:csel.map(function(o){return o.title}),bottom:0,textStyle:{color:'#5c3a28',fontSize:12}},radar:{center:['50%','45%'],radius:'65%',indicator:[{name:'场次数',max:mv.sc||1},{name:'角色数',max:mv.cc||1},{name:'剧本长度',max:mv.bl||1},{name:'场均字数',max:mv.ds||1},{name:'主题数',max:mv.th||1}],axisName:{color:'#5c3a28',fontSize:12},splitArea:{areaStyle:{color:['rgba(184,134,11,0.02)','rgba(184,134,11,0.02)']}},splitLine:{lineStyle:{color:'rgba(139,115,85,0.25)'}},axisLine:{lineStyle:{color:'rgba(139,115,85,0.3)'}}},series:[{type:'radar',data:rd}]};
+    var b0=bo();o2.backgroundColor=b0.backgroundColor;o2.textStyle=b0.textStyle;o2.tooltip=b0.tooltip;
+    cc.setOption(o2);
+  },100);
+}
+
+// ======== DETAIL MODALS ========
+function showSourceDetail(){
+  var srcs=D.source_distribution;
+  var h='<button class="mcl" onclick="clMo()">✕</button><div class="mt">文献来源详情</div><div class="ms"><p>共收录来自 <b>'+srcs.length+'</b> 个文献来源的剧本</p></div>';
+  h+='<div class="ms"><table style="width:100%;border-collapse:collapse;font-size:13px;color:var(--ink2)"><tr style="border-bottom:2px solid var(--gold3);color:var(--red);font-weight:bold"><td style="padding:8px 12px">来源</td><td style="padding:8px 12px;text-align:right">剧本数</td></tr>';
+  srcs.forEach(function(s){
+    h+='<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px">'+s.name+'</td><td style="padding:8px 12px;text-align:right;font-weight:bold;color:var(--gold)">'+s.value+'</td></tr>';
+  });
+  h+='</table></div>';
+  $('mc').innerHTML=h;$('mo').classList.add('show');
+}
+function showDirDetail(){
+  var dirs=D.directory_distribution;
+  // Merge by category
+  var merged={},order=[];
+  dirs.forEach(function(d){var k=d.category||'未知';if(!merged[k]){merged[k]={count:0,dirs:[]};order.push(k)}merged[k].count+=d.value;merged[k].dirs.push(d.name)});
+  var h='<button class="mcl" onclick="clMo()">✕</button><div class="mt">目录分类详情</div><div class="ms"><p>共 <b>'+order.length+'</b> 个大类，'+dirs.length+' 个原始目录</p></div>';
+  h+='<div class="ms"><table style="width:100%;border-collapse:collapse;font-size:13px;color:var(--ink2)"><tr style="border-bottom:2px solid var(--gold3);color:var(--red);font-weight:bold"><td style="padding:8px 12px">分类</td><td style="padding:8px 12px;text-align:right">剧本数</td><td style="padding:8px 12px;font-size:10px">包含目录</td></tr>';
+  order.forEach(function(k){var m=merged[k];
+    h+='<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px 12px;font-weight:bold">'+k+'</td><td style="padding:8px 12px;text-align:right;font-weight:bold;color:var(--gold)">'+m.count+'</td><td style="padding:8px 12px;font-size:10px;color:var(--ink4)">'+m.dirs.join(', ')+'</td></tr>';
+  });
+  h+='</table></div>';
+  $('mc').innerHTML=h;$('mo').classList.add('show');
+}
+
+// ======== INIT on echarts ready ========
+function initApp(){
+  try{
+    fetch('opera_index.json').then(function(r){return r.json()}).then(function(d){oi=d;console.log('Index:',oi.length)}).catch(function(e){console.warn('Index failed',e);oi=[];if(location.protocol==='file:'){console.error('请通过http://localhost:8899访问，不要直接双击HTML文件');}});
+    bAll();
+    wrapScrollSnap();
+    $('ld').style.display='none';
+    $('as').style.display='block';
+    secR['intro']=true;
+    try{rIntro()}catch(e){console.error('rIntro:',e)}
+    document.querySelectorAll('#nav button').forEach(function(b){b.addEventListener('click',function(){sw(this.dataset.s)})});
+    var si=$('si'),st;
+    si.addEventListener('input',function(){clearTimeout(st);st=setTimeout(function(){doS(si.value)},300)});
+    si.addEventListener('focus',function(){
+      if(si.value.length>=1&&oi&&oi.length>0)doS(si.value);
+      else if(oi&&oi.length>0){
+        var t='';for(var i=0;i<Math.min(5,oi.length);i++)t+='<div class="sri" onclick="shOp('+oi[i].id+')"><div class="rt">📜 '+oi[i].title+'</div><div class="rm">来源: '+oi[i].source+' | 主题: '+(oi[i].themes||[]).join(', ')+'</div></div>';
+        $('sr').innerHTML=t||'<div style="padding:12px;color:var(--ink4);text-align:center">数据加载中...</div>';$('sr').classList.add('show');
+      }
+    });
+    document.addEventListener('click',function(e){if(!e.target.closest('.hsearch'))$('sr').classList.remove('show')});
+    $('mo').addEventListener('click',function(e){if(e.target===$('mo'))clMo()});
+    window.addEventListener('resize',function(){Object.keys(ch).forEach(function(k){try{ch[k].resize()}catch(e){}})});
+  }catch(e){
+    $('ld').innerHTML='<div style="color:#c41e3a;text-align:center;padding:40px"><h3>初始化错误</h3><pre>'+e.message+'</pre></div>';
+    console.error('Init error:',e);
+  }
+}
+
+// ECharts loading: local -> bootcdn -> jsdelivr -> timeout
+(function(){
+  var urls=[
+    'echarts.min.js',
+    'https://cdn.bootcdn.net/ajax/libs/echarts/5.5.0/echarts.min.js',
+    'https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js'
+  ];
+  var timeout=setTimeout(function(){
+    $('ld').innerHTML='<div style="text-align:center;padding:40px;color:#8b1a1a"><h3>⚠ ECharts加载超时</h3><p style="color:#8b7355">请确保 echarts.min.js 与HTML在同一目录<br>或将HTML部署到Web服务器通过CDN加载</p></div>';
+  },25000);
+  function load(idx){
+    if(idx>=urls.length){clearTimeout(timeout);return;}
+    var s=document.createElement('script');
+    s.src=urls[idx];
+    s.onload=function(){
+      clearTimeout(timeout);
+      // Load wordcloud
+      window._hasWordcloud=false;
+      var sw=document.createElement('script');
+      sw.src='echarts-wordcloud.min.js';
+      sw.onerror=function(){
+        var sw2=document.createElement('script');
+        sw2.src='https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js';
+        sw2.onload=function(){window._hasWordcloud=true};
+        document.head.appendChild(sw2);
+      };
+      sw.onload=function(){window._hasWordcloud=true};
+      document.head.appendChild(sw);
+      initApp();
+    };
+    s.onerror=function(){load(idx+1)};
+    document.head.appendChild(s);
+  }
+  load(0);
+})();
+</script>
+</body>
+</html>
