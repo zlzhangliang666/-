@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>京剧发展历史 · 古籍书卷</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:transparent;display:flex;align-items:center;justify-content:center;height:100%;font-family:'Noto Serif SC','STKaiti','KaiTi','楷体','STSong',serif;flex-direction:column;gap:16px}
+body::before{content:none}
+#stage{width:768px;height:540px;position:relative;z-index:1;margin:0 auto}
+#cover{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:384px;height:516px;cursor:pointer;z-index:10;transition:all .5s ease}
+#spread{position:absolute;inset:10px 14px 10px 6px}
+
+#cover{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:320px;height:440px;cursor:pointer;z-index:10;transition:all .5s ease}
+#cover.hide{opacity:0;pointer-events:none;transform:translate(-50%,-50%) scale(.85)}
+.cv{width:100%;height:100%;background:linear-gradient(135deg,#5a3a28,#7a5038,#5a3a28);border-radius:6px 3px 3px 6px;box-shadow:6px 6px 28px rgba(0,0,0,0.4),inset 0 0 0 3px rgba(180,140,80,0.2);display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative;overflow:hidden}
+.cv::before{content:'';position:absolute;inset:12px;border:2px solid rgba(200,160,80,0.35);border-radius:2px}
+.cv::after{content:'';position:absolute;left:0;top:0;bottom:0;width:12px;background:linear-gradient(90deg,#1a0c04,#3a1c0c)}
+.ct{font-size:38px;font-weight:900;color:#d4a520;letter-spacing:8px;writing-mode:vertical-rl;text-orientation:upright;z-index:2}
+.cs{font-size:14px;color:#b89860;letter-spacing:6px;margin-top:16px;z-index:2}
+.ch{position:absolute;bottom:36px;color:#887050;font-size:13px;letter-spacing:4px;animation:pulse 2s infinite;z-index:2}
+@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
+
+#spread{position:absolute;inset:8px 10px 8px 4px;display:flex;border-radius:2px 6px 6px 2px;overflow:hidden;box-shadow:0 6px 30px rgba(0,0,0,0.4);opacity:0;pointer-events:none;transition:opacity .4s;background-color:#e2dbcd;border:1px solid rgba(160,130,100,0.2);border-right:3px solid rgba(140,110,80,0.25)}
+#spread.show{opacity:1;pointer-events:auto}
+/* Page stack lines on the right edge */
+#spread::after{content:'';position:absolute;right:-9px;top:0;bottom:0;width:10px;background:repeating-linear-gradient(0deg,rgba(200,175,145,0.4) 0px,rgba(200,175,145,0.4) 1px,rgba(180,155,125,0.15) 1px,rgba(180,155,125,0.15) 2px);border-radius:0 3px 3px 0;z-index:3;pointer-events:none}
+/* Left spine shadow */
+#spread .spine-line{position:absolute;left:0;top:0;bottom:0;width:8px;background:linear-gradient(90deg,rgba(0,0,0,0.12),rgba(0,0,0,0.04),transparent);z-index:3;pointer-events:none}
+/* Top & bottom page stack */
+#spread .page-top{position:absolute;left:2px;right:10px;top:-4px;height:4px;background:linear-gradient(180deg,rgba(180,155,130,0.5),rgba(200,180,155,0.3));border-radius:2px 2px 0 0;z-index:3;pointer-events:none}
+#spread .page-bot{position:absolute;left:2px;right:10px;bottom:-4px;height:4px;background:linear-gradient(180deg,rgba(200,180,155,0.3),rgba(180,155,130,0.5));border-radius:0 0 2px 2px;z-index:3;pointer-events:none}
+.lp::after{content:'';position:absolute;right:0;top:0;bottom:0;width:4px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.06),rgba(0,0,0,0.1),rgba(0,0,0,0.03));z-index:3;pointer-events:none}
+#spread::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:repeating-linear-gradient(45deg,rgba(160,120,60,0.08) 0px,rgba(160,120,60,0.08) 2px,transparent 2px,transparent 8px),repeating-linear-gradient(135deg,rgba(120,90,40,0.06) 0px,rgba(120,90,40,0.06) 3px,transparent 3px,transparent 12px),radial-gradient(circle at 30% 40%,rgba(190,150,80,0.2) 2%,transparent 3.5%),radial-gradient(circle at 70% 85%,rgba(160,120,60,0.18) 3%,transparent 4%),repeating-radial-gradient(circle at 20% 35%,rgba(100,70,30,0.08) 1px,transparent 2px),repeating-radial-gradient(circle at 80% 70%,rgba(80,60,30,0.1) 1px,transparent 3px),linear-gradient(112deg,#f2e8d0 0%,#e8d8b0 100%);background-blend-mode:overlay,normal,multiply,normal,normal,normal,normal;background-size:auto,auto,60px 60px,80px 80px,8px 8px,12px 12px,auto;background-repeat:repeat,repeat,repeat,repeat,repeat,repeat,no-repeat;filter:contrast(1.02) brightness(1.01)}
+.lp,.rp{flex:1;position:relative;z-index:2;padding:30px 26px;overflow-y:auto}
+.lp::before,.rp::before{content:"";position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:280px 280px;background-repeat:repeat;mix-blend-mode:multiply;opacity:0.25;border-radius:0;z-index:0}
+.lp::-webkit-scrollbar,.rp::-webkit-scrollbar{width:4px}
+.lp::-webkit-scrollbar-thumb,.rp::-webkit-scrollbar-thumb{background:rgba(139,100,50,0.1);border-radius:2px}
+.lp.dim,.rp.dim{opacity:.2;transition:opacity .3s}
+.pt{font-size:26px;font-weight:900;color:#3a1c0c;margin-bottom:14px;text-align:center;letter-spacing:3px;font-family:'STKaiti','KaiTi','楷体','Noto Serif SC',serif}
+.px{font-size:16px;color:#4a2818;line-height:2.2;text-indent:2em;font-family:'STKaiti','KaiTi','楷体','Noto Serif SC',serif}
+.ti{padding:13px 18px;margin:4px 0;cursor:pointer;border-radius:2px;font-size:17px;color:#4a2818;font-weight:600;border-left:3px solid transparent;transition:all .2s;font-family:'STKaiti','KaiTi','楷体','Noto Serif SC',serif}
+.ti:hover{background:rgba(180,140,80,0.06);border-left-color:#b8860b}
+.tn{color:#b8860b;font-weight:900;margin-right:5px}.ty{color:#a08060;font-size:10px;margin-left:4px}
+.is{width:100%;height:240px;border:2px solid rgba(139,100,50,0.1);display:flex;align-items:center;justify-content:center;color:#a09080;font-size:12px;background:rgba(139,100,50,0.03);margin-top:8px;overflow:hidden}
+.is img{width:100%;height:100%;object-fit:cover}
+
+#btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;z-index:20}
+#btns.on{opacity:1;pointer-events:auto}
+.bn{padding:9px 18px;background:linear-gradient(180deg,#7a5038,#5a3828);border:1px solid rgba(180,140,80,0.2);color:#e8c860;font-family:inherit;font-size:12px;font-weight:600;letter-spacing:2px;border-radius:4px;cursor:pointer}
+.bn:hover{background:linear-gradient(180deg,#8a6048,#6a4838);border-color:rgba(200,160,100,0.35);transform:translateY(-1px)}
+.bn.off{opacity:.3;pointer-events:none}
+@media(max-width:700px){.pt{font-size:17px}.px{font-size:12px}.ti{font-size:13px}.ct{font-size:28px}.lp,.rp{padding:16px 12px}#cover{width:250px;height:350px}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="cover" onclick="openB()"><div class="cv"><div class="ct">京剧发展历史</div><div class="cs">CHINESE OPERA HISTORY</div><div class="ch">✦ 点击翻开 ✦</div></div></div>
+  <div id="spread">
+    <div class="spine-line"></div><div class="page-top"></div><div class="page-bot"></div>
+    <div class="lp" id="lp"><div class="pt">京剧发展历史</div><div class="px">京剧，中国国粹之一，融合文学、表演、音乐、美术于一体。请从右侧目录选择时代查看详情。</div></div>
+    <div class="rp" id="rp"><div class="pt">目 录</div><div id="toc"></div></div>
+  </div>
+</div>
+<div id="btns">
+  <button class="bn" id="bTOC">📖 返回目录</button>
+  <button class="bn" id="bPrev">◀ 上一页</button>
+  <button class="bn" id="bNext">下一页 ▶</button>
+  <button class="bn" id="bClose">📕 合上书本</button>
+</div>
+
+<script>
+var E=[{t:'一、徽班进京 · 1790年',x:'乾隆五十五年，四大徽班进京贺寿。以二黄为主，兼唱昆腔、吹腔、梆子。此后融合秦腔、汉调等戏曲精华。代表人物程长庚、余三胜、张二奎等「老生三杰」为京剧表演奠定基石。脸谱以红色整脸为主。',c:'#D22B2B'},{t:'二、同光十三绝 · 1860—1908',x:'同治光绪年间京剧成熟鼎盛。涌现「同光十三绝」等技艺超群艺人。谭鑫培创立谭派改革唱腔，王瑶卿改革旦角开创花衫行当。剧目激增体系完善，京剧确立国剧地位。脸谱以三块瓦脸为代表。',c:'#6A0DAD'},{t:'三、梅兰芳时代 · 1910—1960',x:'「四大名旦」将旦角艺术推向高峰。梅兰芳多次出访美苏日，表演体系与斯坦尼、布莱希特并称世界三大体系。音乐舞美全面提升，流派纷呈。脸谱以十字门脸为特色。',c:'#1E88E5'},{t:'四、现代京剧 · 1964—1976',x:'新中国成立后改革创新。《红灯记》《沙家浜》等革命现代京剧成为时代标志。保留京剧韵味同时融入现代舞美和管弦乐。脸谱简约，融入现代几何元素。',c:'#889999'},{t:'五、当代新编戏 · 2000至今',x:'京剧入选联合国非遗代表作名录。当代艺术家传承经典同时探索与现代审美融合。新编历史剧与实验京剧层出不穷，数字化持续推进，京剧以更开放姿态走向未来。金属色脸谱代表创新精神。',c:'#FFD700'}];
+var M={0:'book_p1.jpg',1:'book_p2.jpg',2:'book_p3.jpg',3:'book_p4.jpg',4:'book_p5.jpg'};
+var P=-1,O=false,B=false;
+
+function toc(){
+  var n=['一','二','三','四','五'],h='';
+  for(var i=0;i<E.length;i++)h+='<div class="ti" onclick="go('+i+')"><span class="tn">'+n[i]+'、</span>'+E[i].t.split('·')[0].replace(/^[一二三四五六七八九十]+、/,'')+'<span class="ty">'+E[i].t.split('·')[1]+'</span></div>';
+  q('toc').innerHTML=h;
+}
+function q(id){return document.getElementById(id)}
+
+function openB(){if(O||B)return;O=true;q('cover').classList.add('hide');q('spread').classList.add('show');q('btns').classList.add('on');if(P<0)rst();ub()}
+function closeB(){if(!O||B)return;O=false;q('spread').classList.remove('show');q('btns').classList.remove('on');q('cover').classList.remove('hide')}
+function rst(){P=-1;q('lp').innerHTML='<div class="pt">京剧发展历史</div><div class="px">京剧，中国国粹之一。请从右侧目录选择时代查看详情。</div>';q('rp').innerHTML='<div class="pt">目 录</div><div id="toc"></div>';toc();ub()}
+
+function go(i){
+  if(B||!O||i===P||i<0||i>=E.length)return;B=true;
+  var lp=q('lp'),rp=q('rp'),e=E[i];lp.classList.add('dim');rp.classList.add('dim');
+  var ih=M[i]?'<div class="is"><img src="'+M[i]+'"></div>':'<div class="is">🎭 插图区域<br><span style="font-size:11px">脸谱色调：'+e.c+'</span></div>';
+  setTimeout(function(){lp.innerHTML='<div class="pt">'+e.t+'</div><div class="px">'+e.x+'</div>';rp.innerHTML=ih+'<div style="text-align:center;margin-top:10px;color:#887060;font-size:11px">← 文字介绍 | 插图 →</div>';lp.classList.remove('dim');rp.classList.remove('dim');P=i;B=false;ub()},350);
+}
+function nx(){if(P<4&&!B)go(P+1)}
+function pv(){if(P>0&&!B)go(P-1)}
+function gt(){if(!B&&O&&P>=0)rst()}
+function ub(){q('bPrev').className='bn'+(P<=0?' off':'');q('bNext').className='bn'+(P>=4?' off':'')}
+
+q('bTOC').onclick=gt;q('bPrev').onclick=pv;q('bNext').onclick=nx;q('bClose').onclick=closeB;
+toc();ub();
+</script>
+</body>
+</html>

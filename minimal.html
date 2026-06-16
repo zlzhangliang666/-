@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>最小测试</title>
+<style>
+body{font-family:sans-serif;padding:40px;background:#fdf8f0}
+#msg{font-size:24px;padding:20px;background:#fff;border-radius:8px;text-align:center}
+</style>
+</head>
+<body>
+<div id="msg">⏳ 等待脚本执行...</div>
+
+<script>
+// 最简单的测试 - 直接写死数据
+var D = {"overview": {"total_operas": 1473, "total_characters": 7896}};
+document.getElementById('msg').innerHTML = '<span style="color:green">✅ 脚本执行成功！数据: '+D.overview.total_operas+'个剧本, '+D.overview.total_characters+'个角色</span>';
+</script>
+</body>
+</html>
